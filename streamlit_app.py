@@ -56,11 +56,7 @@ else:
                 }
             }
         ]
-        msgs = [
-                {"role": "system", "content": "You are a helpful assistant that can chat with a user and also fetch Pokémon information."},
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ]
+        msgs = [{"role": "system", "content": "You are a helpful assistant that can chat with a user and also fetch Pokémon information."}] + [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
         # Generate a response using the OpenAI API.
         stream = client.chat.completions.create(
             model="gpt-4o",
