@@ -61,7 +61,7 @@ else:
         stream = client.chat.completions.create(
             model="gpt-4o",
             messages=msgs,
-            stream=True,
+            stream=False,
             tools=functions,
             tool_choice="auto"
         )
@@ -88,7 +88,7 @@ else:
         # Stream the response to the chat using `st.write_stream`, then store it in 
         # session state.
         with st.chat_message("assistant"):
-            response = st.write_stream(stream)
+            response = stream
         st.session_state.messages.append({"role": "assistant", "content": response})
 
 
