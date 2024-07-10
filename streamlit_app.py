@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 import requests
+import json
 
 # Show title and description.
 st.title("💬 Chatbot")
@@ -65,7 +66,7 @@ else:
             tools=functions,
             tool_choice="auto"
         )
-
+        
         function_call_name = stream.choices[0].message.tool_calls[0].function.name
         tool_call_id = stream.choices[0].message.tool_calls[0].id
         tool_function_name = stream.choices[0].message.tool_calls[0].function.name
