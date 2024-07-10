@@ -1,10 +1,11 @@
 import streamlit as st
 from openai import OpenAI
+import requests
 
 # Show title and description.
 st.title("💬 Chatbot")
 st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
+    "This is a simple chatbot that uses OpenAI's GPT-4o model to generate responses. "
     "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
     "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
 )
@@ -39,18 +40,80 @@ else:
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
+        functions = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_pokemon_info",
+                    "description": "Get information about a specific Pokémon",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "pokemon_name": {"type": "string", "description": "Name of the Pokémon"}
+                        },
+                        "required": ["pokemon_name"]
+                    }
+                }
+            }
+        ]
+        msgs = [
+                {"role": "system", "content": "You are a helpful assistant that can chat with a user and also fetch Pokémon information."},
                 {"role": m["role"], "content": m["content"]}
                 for m in st.session_state.messages
-            ],
+            ]
+        # Generate a response using the OpenAI API.
+        stream = client.chat.completions.create(
+            model="gpt-4o",
+            messages=msgs,
             stream=True,
+            tools=functions,
+            tool_choice="auto"
         )
+
+        function_call_name = stream.choices[0].message.tool_calls[0].function.name
+        tool_call_id = stream.choices[0].message.tool_calls[0].id
+        tool_function_name = stream.choices[0].message.tool_calls[0].function.name
+
+        if function_call_name == "get_pokemon_info":
+            arguments = json.loads(stream.choices[0].message.tool_calls[0].function.arguments)
+            result = get_pokemon_info(arguments["pokemon_name"])
+            msgs.append({
+            "role":"assistant", 
+            "tool_call_id":tool_call_id, 
+            "name": tool_function_name, 
+            "content":f"You successfully retrieved the following information about the requested pokemon: {result}"
+            })
+            model_response_with_function_call = client.chat.completions.create(
+            model="gpt-4o",
+            messages=msgs,
+            )
+            st.session_state.messages.append({"role": "assistant", "content": model_response_with_function_call})
 
         # Stream the response to the chat using `st.write_stream`, then store it in 
         # session state.
         with st.chat_message("assistant"):
             response = st.write_stream(stream)
         st.session_state.messages.append({"role": "assistant", "content": response})
+
+
+# Useful functions
+
+def get_pokemon_info(pokemon_name):
+    url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}"
+    
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        data = response.json()
+        pokemon_info = {
+            "name": data["name"],
+            "id": data["id"],
+            "height": data["height"],
+            "weight": data["weight"],
+            "types": [type_info["type"]["name"] for type_info in data["types"]],
+            "abilities": [ability_info["ability"]["name"] for ability_info in data["abilities"]],
+            "base_stats": {stat["stat"]["name"]: stat["base_stat"] for stat in data["stats"]}
+        }
+        return pokemon_info
+    else:
+        return f"Failed to get information: {response.status_code} - {response.text}"
