@@ -6,7 +6,7 @@ import json
 import os
 from toolhouse import Toolhouse
 
-st.title("💬 Chatbot")
+st.title("💬 LLM Email Chatbot")
 
 #openai_api_key = os.getenv("OPENAI_API_KEY")
 def print_chat(response):
