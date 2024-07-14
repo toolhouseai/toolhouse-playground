@@ -15,6 +15,16 @@ st.logo(
 with st.sidebar:
     llm_choice = st.selectbox("Model", tuple(llms.keys()))
     user = st.text_input("User")
+    st.divider()
+    t = Toolhouse(provider='anthropic')
+    t.set_metadata('id', 'any')
+    available_tools = t.get_tools()
+
+    markdown = ['### Installed tools', '']
+    for tool in available_tools:
+        markdown.append(' - ' + tool.get('name'))
+    
+    st.markdown('\n'.join(markdown))
 
 llm = llms.get(llm_choice)
 provider = llm.get('provider')
@@ -25,10 +35,6 @@ th.set_metadata('id', 'daniele')
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-def format_messages():
-    # return [{ "role": m["role"], "content": m["content"]} for m in st.session_state.messages]
-    return st.session_state.messages
 
 def append_and_print(response):
     with st.chat_message("assistant"):
@@ -59,7 +65,7 @@ if prompt := st.chat_input("What is up?"):
     response = llm_call(
         provider=llm_choice,
         model=model,
-        messages=format_messages(),
+        messages=st.session_state.messages,
         stream=False,
         tools=th.get_tools(),
         max_tokens=4096,
@@ -73,7 +79,7 @@ if prompt := st.chat_input("What is up?"):
         after_tool_response = llm_call(
             provider=llm_choice,
             model=model,
-            messages=format_messages(),
+            messages=st.session_state.messages,
             stream=False,
             tools=th.get_tools(),
             max_tokens=4096,
