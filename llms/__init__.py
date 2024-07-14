@@ -12,14 +12,14 @@ llms = {
         "provider": "anthropic", 
         "model": "claude-3-5-sonnet-20240620",
     },
-    "Llama (GroqCloud)": { 
-        "provider": "openai", 
-        "model": "llama3-70b-8192", 
-    },
-    "Mixtral (GroqCloud)": { 
-        "provider": "openai", 
-        "model": "mixtral-8x7b-32768", 
-    },
+    # "Llama (GroqCloud)": { 
+    #     "provider": "openai", 
+    #     "model": "llama3-70b-8192", 
+    # },
+    # "Mixtral (GroqCloud)": { 
+    #     "provider": "openai", 
+    #     "model": "mixtral-8x7b-32768", 
+    # },
 }
 
 def llm_call(provider, **kwargs):
@@ -40,7 +40,6 @@ def call_openai(**kwargs):
     stream=kwargs.get("stream"),
     tools=kwargs.get("tools"),
     max_tokens=kwargs.get("max_tokens"),
-    tool_choice=kwargs.get("tool_choice"),
   )
 
 def call_anthropic(**kwargs):
@@ -51,7 +50,6 @@ def call_anthropic(**kwargs):
     stream=kwargs.get("stream"),
     tools=kwargs.get("tools"),
     max_tokens=kwargs.get("max_tokens"),
-    tool_choice=kwargs.get("tool_choice"),
   )
 
 def call_groq(**kwargs):
@@ -62,5 +60,4 @@ def call_groq(**kwargs):
     stream=kwargs.get("stream"),
     tools=kwargs.get("tools"),
     max_tokens=kwargs.get("max_tokens"),
-    tool_choice=kwargs.get("tool_choice"),
   )
