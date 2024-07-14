@@ -34,6 +34,18 @@ def llm_call(provider, **kwargs):
   
 def call_openai(**kwargs):
   client = OpenAI()
+  
+  messages = []
+  for message in kwargs.get("messages", []):
+    msg = message.copy()
+    if "function_call" in msg:
+      del msg["function_call"]
+      
+    if "tool_calls" in msg and msg["tool_calls"] is None:
+      del msg["tool_calls"]
+
+    messages.append(msg)
+    
   return client.chat.completions.create(
     model=kwargs.get("model"),
     messages=kwargs.get("messages"),
