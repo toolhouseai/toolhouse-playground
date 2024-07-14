@@ -38,12 +38,9 @@ def append_and_print(response):
                 text = next((c.text for c in response.content if hasattr(c, "text")), '…')
                 st.write(text)
         else:
-            if response.choices[0].message.role == "tool":
-                st.session_state.messages.append(response.choices[0].message.model_dump())
-            else:
-                st.session_state.messages.append({"role": "assistant", "content": response.choices[0].message.model_dump()})
-                if text := response.choices[0].message.content is not None:
-                    st.write(text)
+            st.session_state.messages.append(response.choices[0].message.model_dump())
+            if (text := response.choices[0].message.content) is not None:
+                st.write(text)
 
 
 for message in st.session_state.messages:
@@ -69,6 +66,7 @@ if prompt := st.chat_input("What is up?"):
     )
 
     append_and_print(response)
+    print(json.dumps(st.session_state.messages, indent=4))
     tool_results = th.run_tools(response)
 
     if tool_results:
