@@ -12,14 +12,14 @@ llms = {
         "provider": "anthropic", 
         "model": "claude-3-5-sonnet-20240620",
     },
-    # "Llama (GroqCloud)": { 
-    #     "provider": "openai", 
-    #     "model": "llama3-70b-8192", 
-    # },
-    # "Mixtral (GroqCloud)": { 
-    #     "provider": "openai", 
-    #     "model": "mixtral-8x7b-32768", 
-    # },
+    "Llama (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "llama3-70b-8192", 
+    },
+    "Mixtral (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "mixtral-8x7b-32768", 
+    },
 }
 
 def llm_call(provider, **kwargs):
@@ -54,9 +54,21 @@ def call_anthropic(**kwargs):
 
 def call_groq(**kwargs):
   client = Groq(api_key=os.environ.get('GROQCLOUD_API_KEY'))
+  
+  messages = []
+  for message in kwargs.get("messages", []):
+    msg = message.copy()
+    if "function_call" in msg:
+      del msg["function_call"]
+      
+    if "tool_calls" in msg and msg["tool_calls"] is None:
+      del msg["tool_calls"]
+
+    messages.append(msg)
+  
   return client.chat.completions.create(
     model=kwargs.get("model"),
-    messages=kwargs.get("messages"),
+    messages=messages,
     stream=kwargs.get("stream"),
     tools=kwargs.get("tools"),
     max_tokens=kwargs.get("max_tokens"),

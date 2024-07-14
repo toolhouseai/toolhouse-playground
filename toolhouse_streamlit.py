@@ -66,7 +66,6 @@ if prompt := st.chat_input("What is up?"):
     )
 
     append_and_print(response)
-    print(json.dumps(st.session_state.messages, indent=4))
     tool_results = th.run_tools(response)
 
     if tool_results:
