@@ -19,8 +19,6 @@ with st.sidebar:
     user = st.text_input("User", 'daniele')
     st.divider()
     t = Toolhouse(provider='anthropic')
-    t.set_metadata('timezone', 0)
-    t.set_metadata('id', 'any')
     available_tools = t.get_tools()
 
     if not available_tools:
@@ -40,7 +38,7 @@ model = llm.get('model')
 
 th = Toolhouse(provider=llm.get('provider'))
 th.set_metadata('timezone', -7)
-th.set_metadata('id', 'daniele')
+th.set_metadata('id', user)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -99,17 +97,18 @@ if prompt := st.chat_input("What is up?"):
     )  
     
     append_and_print(response)
-    tool_results = th.run_tools(response)
-    print(tool_results)
-    
-    if tool_results:
-        st.session_state.messages += tool_results
-        after_tool_response = llm_call(
-            provider=llm_choice,
-            model=model,
-            messages=st.session_state.messages,
-            stream=stream,
-            tools=th.get_tools(),
-            max_tokens=4096,
-        )
-        append_and_print(after_tool_response)
+
+    while response.stop_reason == "tool_use":
+        tool_results = th.run_tools(response, append=False)
+
+        if tool_results:
+            st.session_state.messages += tool_results
+            response = llm_call(
+                provider=llm_choice,
+                model=model,
+                messages=st.session_state.messages,
+                stream=stream,
+                tools=th.get_tools(),
+                max_tokens=4096,
+            )
+            append_and_print(response)
