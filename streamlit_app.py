@@ -3,6 +3,7 @@ from openai import OpenAI
 import requests
 import json
 import os
+from datetime import datetime, timezone
 
 def send_email(api_key, domain, sender, recipient, subject, body):
 
@@ -56,24 +57,32 @@ else:
 
         functions = [
             {
-            "type": "function",
-            "function": {
-                "name": "send_email",
-                "description": "Send an email using the Mailgun API",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "api_key": {"type": "string", "description": "Mailgun API key"},
-                        "domain": {"type": "string", "description": "Mailgun domain"},
-                        "sender": {"type": "string", "description": "Sender email address"},
-                        "recipient": {"type": "string", "description": "Recipient email address"},
-                        "subject": {"type": "string", "description": "Subject of the email"},
-                        "body": {"type": "string", "description": "Body of the email"}
-                    },
-                    "required": ["api_key", "domain", "sender", "recipient", "subject", "body"]
-                }
-            }
-            }
+                "type": "function",
+                "function": {
+                    "name": "send_email",
+                    "description": "Send an email using the Mailgun API",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "api_key": {"type": "string", "description": "Mailgun API key"},
+                            "domain": {"type": "string", "description": "Mailgun domain"},
+                            "sender": {"type": "string", "description": "Sender email address"},
+                            "recipient": {"type": "string", "description": "Recipient email address"},
+                            "subject": {"type": "string", "description": "Subject of the email"},
+                            "body": {"type": "string", "description": "Body of the email"}
+                        },
+                        "required": ["api_key", "domain", "sender", "recipient", "subject", "body"]
+                    }
+                },                
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "current_time",
+                    "description": "Gets the current UTC time in ISO format.",
+                    "parameters": {}
+                },                
+            },
         ]
         msgs = [
             {"role": "system", "content": "You are a helpful assistant that can chat with a user and send emails."},
@@ -107,6 +116,17 @@ else:
                     "name": tool_function_name, 
                     "content":f"You successfully sent an email because the API returned this result {result}, let the user know that you sent the email to the recipient and tell them which recipient."
                 })
+
+            if function_call_name == "current_time":
+                utc_time = datetime.now(timezone.utc).isoformat()
+                msgs.append({
+                    "role":"assistant", 
+                    "tool_call_id":tool_call_id, 
+                    "name": tool_function_name, 
+                    "content": utc_time
+                })
+            
+            if function_call_name:
                 model_response_with_function_call = client.chat.completions.create(
                     model="gpt-4o",
                     messages=msgs,
@@ -116,6 +136,7 @@ else:
                     if model_response_with_function_call.choices[0].message.content is not None:
                         response = model_response_with_function_call.choices[0].message.content
                         st.write(response)
+                
         else:
             with st.chat_message("assistant"):
                 if stream.choices[0].message.content is not None:
