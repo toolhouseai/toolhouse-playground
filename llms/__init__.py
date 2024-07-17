@@ -4,13 +4,13 @@ from anthropic import Anthropic
 from groq import Groq
 
 llms = {
-    "Claude 3.5 Sonnet": { 
-        "provider": "anthropic", 
-        "model": "claude-3-5-sonnet-20240620",
-    },
     "GPT-4o": { 
         "provider": "openai", 
         "model": "gpt-4o", 
+    },
+    "Claude 3.5 Sonnet": { 
+        "provider": "anthropic", 
+        "model": "claude-3-5-sonnet-20240620",
     },
     "Llama 70b-8192 (GroqCloud)": { 
         "provider": "openai", 

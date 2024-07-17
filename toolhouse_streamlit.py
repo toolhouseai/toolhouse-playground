@@ -1,9 +1,9 @@
 import streamlit as st
-from typing import List
+import streamlit.components.v1 as components
 from toolhouse import Toolhouse
+from toolhouse.models import OpenAIStream, stream_to_chat_completion
 from llms import llms, llm_call
 import dotenv
-import json
 
 dotenv.load_dotenv()
 
@@ -12,10 +12,11 @@ st.logo(
     "logo.svg",
     link="https://toolhouse.ai")
 
+base_url = 'https://66951f1e2cff11b2ba52.appwrite.global/v1'
+
 with st.sidebar:
     llm_choice = st.selectbox("Model", tuple(llms.keys()))
-    # stream = st.toggle("Stream responses", False, disabled=True)
-    stream = False
+    stream = st.toggle("Stream responses", True)
     user = st.text_input("User", 'daniele')
     st.divider()
     t = Toolhouse(provider='anthropic')
@@ -50,6 +51,11 @@ def anthropic_stream(response):
         if chunk.type == 'content_block_delta':
             yield chunk.delta.text
 
+def openai_stream(response, completion):
+    for chunk in response:
+        yield chunk    
+        completion.add(chunk)
+
 def append_and_print(response, role = "assistant"):
     with st.chat_message(role):
         if provider == 'anthropic':
@@ -64,8 +70,14 @@ def append_and_print(response, role = "assistant"):
                     st.write(text)
         else:
             if stream:
-                r = st.write_stream(response)
-                st.session_state.messages.append({ "role": role, "content": r })
+                stream_completion = OpenAIStream()
+                r = st.write_stream(openai_stream(response, stream_completion))
+                completion = stream_to_chat_completion(stream_completion)
+                if completion.choices[0].message.tool_calls:
+                    st.session_state.messages.append(completion.choices[0].message.model_dump())
+                else:
+                    st.session_state.messages.append({"role": role, "content": r})
+                return stream_completion
             else:
                 st.session_state.messages.append(response.choices[0].message.model_dump())
                 if (text := response.choices[0].message.content) is not None:
@@ -74,6 +86,7 @@ def append_and_print(response, role = "assistant"):
                     tool_calls = response.choices[0].message.tool_calls
                     tools = [t.function.name for t in tool_calls]
                     st.write(f"Calling: " + ", ".join(tools))
+                return response
 
 
 for message in st.session_state.messages:
@@ -88,7 +101,7 @@ if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-
+        
     response = llm_call(
         provider=llm_choice,
         model=model,
@@ -96,13 +109,14 @@ if prompt := st.chat_input("What is up?"):
         stream=stream,
         tools=th.get_tools(),
         max_tokens=4096,
-    )  
+    )
     
-    append_and_print(response)
-    tool_results = th.run_tools(response)
-    print(tool_results)
+    completion = append_and_print(response)
+    tool_results = th.run_tools(completion, stream=stream, append=False)
     
-    if tool_results:
+    print(st.session_state.messages, end="\n\n\n")
+    print(tool_results, end="\n\n\n")
+    while tool_results:
         st.session_state.messages += tool_results
         after_tool_response = llm_call(
             provider=llm_choice,
@@ -112,4 +126,5 @@ if prompt := st.chat_input("What is up?"):
             tools=th.get_tools(),
             max_tokens=4096,
         )
-        append_and_print(after_tool_response)
+        after_tool_response = append_and_print(after_tool_response)
+        tool_results = th.run_tools(after_tool_response, stream=stream)
