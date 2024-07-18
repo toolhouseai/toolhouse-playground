@@ -60,15 +60,13 @@ def append_and_print(response, role = "assistant"):
             if stream:
                 r = st.write_stream(anthropic_stream(response))
                 st.session_state.messages.append({ "role": role, "content": response.get_final_message().content })
-                print('*' * 50)
-                print(st.session_state.messages)
-                print('*' * 50)
                 return response.get_final_message()
             else:
                 if response.content is not None:
                     st.session_state.messages.append({"role": role, "content": response.content})
                     text = next((c.text for c in response.content if hasattr(c, "text")), '…')
                     st.write(text)
+                return response
         else:
             if stream:
                 stream_completion = OpenAIStream()
@@ -107,8 +105,6 @@ if prompt := st.chat_input("What is up?"):
         completion = append_and_print(response)
         tool_results = th.run_tools(completion, stream=stream, append=False)
         
-        print(st.session_state.messages, end="\n\n\n")
-        print(tool_results, end="\n\n\n")
         while tool_results:
             st.session_state.messages += tool_results
             with llm_call(
