@@ -1,20 +1,9 @@
 import streamlit as st
+from typing import List
 from toolhouse import Toolhouse
 from llms import llms, llm_call
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-if "user" not in st.session_state:
-    st.session_state.user = ''
-
-if "stream" not in st.session_state:
-    st.session_state.stream = True
-
-if "provider" not in st.session_state:
-    st.session_state.provider = llms.get(next(iter(llms))).get('provider')
-    
-from st_utils import print_messages, append_and_print
 import dotenv
+import json
 
 dotenv.load_dotenv()
 
@@ -25,8 +14,9 @@ st.logo(
 
 with st.sidebar:
     llm_choice = st.selectbox("Model", tuple(llms.keys()))
-    stream = st.toggle("Stream responses", st.session_state.stream)
-    user = st.text_input("User")
+    # stream = st.toggle("Stream responses", False, disabled=True)
+    stream = False
+    user = st.text_input("User", 'daniele')
     st.divider()
     t = Toolhouse(provider='anthropic')
     available_tools = t.get_tools()
@@ -48,36 +38,77 @@ model = llm.get('model')
 
 th = Toolhouse(provider=llm.get('provider'))
 th.set_metadata('timezone', -7)
-if user:
-    th.set_metadata('id', user)
+th.set_metadata('id', user)
 
-print_messages(st.session_state.messages, provider)
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+def anthropic_stream(response):
+    for chunk in response:
+        if chunk.type == 'content_block_delta':
+            yield chunk.delta.text
+
+def append_and_print(response, role = "assistant"):
+    with st.chat_message(role):
+        if provider == 'anthropic':
+            if stream:
+                r = st.write_stream(anthropic_stream(response))
+                st.session_state.messages.append({ "role": role, "content": r })
+                response.close()
+            else:
+                if response.content is not None:
+                    st.session_state.messages.append({"role": role, "content": response.content})
+                    text = next((c.text for c in response.content if hasattr(c, "text")), '…')
+                    st.write(text)
+        else:
+            if stream:
+                r = st.write_stream(response)
+                st.session_state.messages.append({ "role": role, "content": r })
+            else:
+                st.session_state.messages.append(response.choices[0].message.model_dump())
+                if (text := response.choices[0].message.content) is not None:
+                    st.write(text)
+                elif response.choices[0].message.tool_calls:
+                    tool_calls = response.choices[0].message.tool_calls
+                    tools = [t.function.name for t in tool_calls]
+                    st.write(f"Calling: " + ", ".join(tools))
+
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        if provider == 'anthropic':
+            text = next(c.text for c in message["content"] if hasattr(c, "text")) if message["role"] == "assistant" else message["content"]
+            st.markdown(text)
+        else:
+            st.markdown(message["content"])
 
 if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-        
-    with llm_call(
+
+    response = llm_call(
         provider=llm_choice,
         model=model,
         messages=st.session_state.messages,
         stream=stream,
         tools=th.get_tools(),
         max_tokens=4096,
-    ) as response:    
-        completion = append_and_print(response)
-        tool_results = th.run_tools(completion, stream=stream, append=False)
-        
-        while tool_results:
+    )  
+    
+    append_and_print(response)
+
+    while response.stop_reason == "tool_use":
+        tool_results = th.run_tools(response, append=False)
+
+        if tool_results:
             st.session_state.messages += tool_results
-            with llm_call(
+            response = llm_call(
                 provider=llm_choice,
                 model=model,
                 messages=st.session_state.messages,
                 stream=stream,
                 tools=th.get_tools(),
                 max_tokens=4096,
-            ) as after_tool_response:
-                after_tool_response = append_and_print(after_tool_response)
-                tool_results = th.run_tools(after_tool_response, stream=stream)
+            )
+            append_and_print(response)
