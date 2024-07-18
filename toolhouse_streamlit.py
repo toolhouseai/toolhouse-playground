@@ -1,9 +1,19 @@
 import streamlit as st
-import streamlit.components.v1 as components
 from toolhouse import Toolhouse
-from toolhouse.models import OpenAIStream, stream_to_chat_completion
 from llms import llms, llm_call
-from st_utils import render_messages
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+if "user" not in st.session_state:
+    st.session_state.user = ''
+
+if "stream" not in st.session_state:
+    st.session_state.stream = True
+
+if "provider" not in st.session_state:
+    st.session_state.provider = llms.get(next(iter(llms))).get('provider')
+    
+from st_utils import print_messages, append_and_print
 import dotenv
 
 dotenv.load_dotenv()
@@ -15,12 +25,10 @@ st.logo(
 
 with st.sidebar:
     llm_choice = st.selectbox("Model", tuple(llms.keys()))
-    stream = st.toggle("Stream responses", True)
-    user = st.text_input("User", 'daniele')
+    stream = st.toggle("Stream responses", st.session_state.stream)
+    user = st.text_input("User")
     st.divider()
     t = Toolhouse(provider='anthropic')
-    t.set_metadata('timezone', 0)
-    t.set_metadata('id', 'any')
     available_tools = t.get_tools()
 
     if not available_tools:
@@ -40,54 +48,10 @@ model = llm.get('model')
 
 th = Toolhouse(provider=llm.get('provider'))
 th.set_metadata('timezone', -7)
-th.set_metadata('id', 'daniele')
+if user:
+    th.set_metadata('id', user)
 
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-def anthropic_stream(response):
-    for chunk in response.text_stream:
-        yield chunk
-
-def openai_stream(response, completion):
-    for chunk in response:
-        yield chunk    
-        completion.add(chunk)
-
-def append_and_print(response, role = "assistant"):
-    with st.chat_message(role):
-        if provider == 'anthropic':
-            if stream:
-                r = st.write_stream(anthropic_stream(response))
-                st.session_state.messages.append({ "role": role, "content": response.get_final_message().content })
-                return response.get_final_message()
-            else:
-                if response.content is not None:
-                    st.session_state.messages.append({"role": role, "content": response.content})
-                    text = next((c.text for c in response.content if hasattr(c, "text")), '…')
-                    st.write(text)
-                return response
-        else:
-            if stream:
-                stream_completion = OpenAIStream()
-                r = st.write_stream(openai_stream(response, stream_completion))
-                completion = stream_to_chat_completion(stream_completion)
-                if completion.choices[0].message.tool_calls:
-                    st.session_state.messages.append(completion.choices[0].message.model_dump())
-                else:
-                    st.session_state.messages.append({"role": role, "content": r})
-                return stream_completion
-            else:
-                st.session_state.messages.append(response.choices[0].message.model_dump())
-                if (text := response.choices[0].message.content) is not None:
-                    st.write(text)
-                elif response.choices[0].message.tool_calls:
-                    tool_calls = response.choices[0].message.tool_calls
-                    tools = [t.function.name for t in tool_calls]
-                    st.write(f"Calling: " + ", ".join(tools))
-                return response
-
-render_messages(st.session_state.messages, provider)
+print_messages(st.session_state.messages, provider)
 
 if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
