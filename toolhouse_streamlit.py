@@ -26,7 +26,7 @@ st.logo(
 
 with st.sidebar:
     llm_choice = st.selectbox("Model", tuple(llms.keys()))
-    stream = st.toggle("Stream responses", st.session_state.stream)
+    st.session_state.stream = st.toggle("Stream responses", True)
     user = st.text_input("User")
     st.divider()
     t = Toolhouse(provider='anthropic')
@@ -44,7 +44,7 @@ with st.sidebar:
     
 
 llm = llms.get(llm_choice)
-provider = llm.get('provider')
+st.session_state.provider = llm.get('provider')
 model = llm.get('model')
 
 th = Toolhouse(provider=llm.get('provider'))
@@ -52,7 +52,7 @@ th.set_metadata('timezone', -7)
 if user:
     th.set_metadata('id', user)
 
-print_messages(st.session_state.messages, provider)
+print_messages(st.session_state.messages, st.session_state.provider)
 
 if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -63,12 +63,12 @@ if prompt := st.chat_input("What is up?"):
         provider=llm_choice,
         model=model,
         messages=st.session_state.messages,
-        stream=stream,
+        stream=st.session_state.stream,
         tools=th.get_tools(),
         max_tokens=4096,
     ) as response:    
         completion = append_and_print(response)
-        tool_results = th.run_tools(completion, stream=stream, append=False)
+        tool_results = th.run_tools(completion, stream=st.session_state.stream, append=False)
         
         while tool_results:
             st.session_state.messages += tool_results
@@ -76,9 +76,9 @@ if prompt := st.chat_input("What is up?"):
                 provider=llm_choice,
                 model=model,
                 messages=st.session_state.messages,
-                stream=stream,
+                stream=st.session_state.stream,
                 tools=th.get_tools(),
                 max_tokens=4096,
             ) as after_tool_response:
                 after_tool_response = append_and_print(after_tool_response)
-                tool_results = th.run_tools(after_tool_response, stream=stream)
+                tool_results = th.run_tools(after_tool_response, stream=st.session_state.stream)

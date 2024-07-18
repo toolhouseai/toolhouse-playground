@@ -12,13 +12,25 @@ llms = {
         "provider": "openai", 
         "model": "gpt-4o", 
     },
-    "Llama 70b-8192 (GroqCloud)": { 
+    "Llama3 70b-8192 (GroqCloud)": { 
         "provider": "openai", 
-        "model": "llama3-70b-8192", 
+        "model": "llama3-groq-70b-8192-tool-use-preview", 
+    },
+    "Llama3 8b-8192 (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "llama3-groq-8b-8192-tool-use-preview", 
     },
     "Mixtral 8x7b (GroqCloud)": { 
         "provider": "openai", 
         "model": "mixtral-8x7b-32768", 
+    },
+    "Gemma2 9b (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "gemma2-9b-it", 
+    },
+    "Gemma 7b (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "gemma-7b-it", 
     },
     "Mixtral 8x7b (Together AI)": { 
         "provider": "openai", 
@@ -69,8 +81,11 @@ def call_anthropic(**kwargs):
     return client.messages.create(**kwargs)
 
 def call_groq(**kwargs):
-  client = Groq(api_key=os.environ.get("GROQCLOUD_API_KEY"))
-  
+  client = OpenAI(
+    api_key=os.environ.get('GROQCLOUD_API_KEY'),
+    base_url="https://api.groq.com/openai/v1",
+  )
+
   messages = []
   for message in kwargs.get("messages", []):
     msg = message.copy()

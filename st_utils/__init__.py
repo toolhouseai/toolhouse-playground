@@ -28,10 +28,9 @@ def print_messages(messages, provider):
                     elif m.type == "tool_use":
                         with st.chat_message("tool"):
                             st.markdown(f"`{m.name}({m.input})`")
-        else:            
+        else:
             if isinstance(message.get("tool_calls"), list):
                 with st.chat_message("tool"):
-                    print(message["tool_calls"])
                     calls = [f"`{c["function"]["name"]}({c["function"]["arguments"]})`" for c in message["tool_calls"]]
                     st.markdown('\n'.join(calls))
             elif message["role"] != "tool":
@@ -39,6 +38,7 @@ def print_messages(messages, provider):
                     st.markdown(message["content"])
 
 def append_and_print(response, role = "assistant"):
+    print(st.session_state.stream)
     with st.chat_message(role):
         if st.session_state.provider == 'anthropic':
             if st.session_state.stream:
@@ -56,6 +56,7 @@ def append_and_print(response, role = "assistant"):
                 stream_completion = OpenAIStream()
                 r = st.write_stream(openai_stream(response, stream_completion))
                 completion = stream_to_chat_completion(stream_completion)
+
                 if completion.choices[0].message.tool_calls:
                     st.session_state.messages.append(completion.choices[0].message.model_dump())
                 else:
