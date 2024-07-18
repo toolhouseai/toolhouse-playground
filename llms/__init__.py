@@ -26,7 +26,17 @@ llms = {
     },
 }
 
-def llm_call(provider, **kwargs):
+class LLMContextManager(object):
+  def __init__(self, sdk):
+    self.sdk = sdk
+  
+  def __enter__(self):
+    return self.sdk
+  
+  def __exit__(self, *args):
+    pass
+
+def select_llm(provider, **kwargs):
   if "GroqCloud" in provider:
     return call_groq(**kwargs)
   elif "Together AI" in provider:
@@ -38,16 +48,28 @@ def llm_call(provider, **kwargs):
   else:
     raise Exception(f"Invalid LLM provider: {provider}")
   
+def llm_call(provider, **kwargs):
+  if not kwargs.get('stream', False):
+    return LLMContextManager(select_llm(provider, **kwargs))
+  else:
+    return select_llm(provider, **kwargs)
+
 def call_openai(**kwargs):
   client = OpenAI()
   return client.chat.completions.create(**kwargs)
 
 def call_anthropic(**kwargs):
   client = Anthropic()
-  return client.messages.create(**kwargs)
+  
+  if kwargs.get("stream"):
+    args = kwargs.copy()
+    del args["stream"]
+    return client.messages.stream(**args)
+  else:
+    return client.messages.create(**kwargs)
 
 def call_groq(**kwargs):
-  client = Groq(api_key=os.environ.get('GROQCLOUD_API_KEY'))
+  client = Groq(api_key=os.environ.get("GROQCLOUD_API_KEY"))
   
   messages = []
   for message in kwargs.get("messages", []):

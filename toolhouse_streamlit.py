@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 from toolhouse import Toolhouse
 from toolhouse.models import OpenAIStream, stream_to_chat_completion
 from llms import llms, llm_call
+from st_utils import render_messages
 import dotenv
 
 dotenv.load_dotenv()
@@ -11,8 +12,6 @@ st.title("💬 Toolhouse demo")
 st.logo(
     "logo.svg",
     link="https://toolhouse.ai")
-
-base_url = 'https://66951f1e2cff11b2ba52.appwrite.global/v1'
 
 with st.sidebar:
     llm_choice = st.selectbox("Model", tuple(llms.keys()))
@@ -47,9 +46,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 def anthropic_stream(response):
-    for chunk in response:
-        if chunk.type == 'content_block_delta':
-            yield chunk.delta.text
+    for chunk in response.text_stream:
+        yield chunk
 
 def openai_stream(response, completion):
     for chunk in response:
@@ -61,8 +59,11 @@ def append_and_print(response, role = "assistant"):
         if provider == 'anthropic':
             if stream:
                 r = st.write_stream(anthropic_stream(response))
-                st.session_state.messages.append({ "role": role, "content": r })
-                response.close()
+                st.session_state.messages.append({ "role": role, "content": response.get_final_message().content })
+                print('*' * 50)
+                print(st.session_state.messages)
+                print('*' * 50)
+                return response.get_final_message()
             else:
                 if response.content is not None:
                     st.session_state.messages.append({"role": role, "content": response.content})
@@ -88,43 +89,35 @@ def append_and_print(response, role = "assistant"):
                     st.write(f"Calling: " + ", ".join(tools))
                 return response
 
-
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        if provider == 'anthropic':
-            text = next(c.text for c in message["content"] if hasattr(c, "text")) if message["role"] == "assistant" else message["content"]
-            st.markdown(text)
-        else:
-            st.markdown(message["content"])
+render_messages(st.session_state.messages, provider)
 
 if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
         
-    response = llm_call(
+    with llm_call(
         provider=llm_choice,
         model=model,
         messages=st.session_state.messages,
         stream=stream,
         tools=th.get_tools(),
         max_tokens=4096,
-    )
-    
-    completion = append_and_print(response)
-    tool_results = th.run_tools(completion, stream=stream, append=False)
-    
-    print(st.session_state.messages, end="\n\n\n")
-    print(tool_results, end="\n\n\n")
-    while tool_results:
-        st.session_state.messages += tool_results
-        after_tool_response = llm_call(
-            provider=llm_choice,
-            model=model,
-            messages=st.session_state.messages,
-            stream=stream,
-            tools=th.get_tools(),
-            max_tokens=4096,
-        )
-        after_tool_response = append_and_print(after_tool_response)
-        tool_results = th.run_tools(after_tool_response, stream=stream)
+    ) as response:    
+        completion = append_and_print(response)
+        tool_results = th.run_tools(completion, stream=stream, append=False)
+        
+        print(st.session_state.messages, end="\n\n\n")
+        print(tool_results, end="\n\n\n")
+        while tool_results:
+            st.session_state.messages += tool_results
+            with llm_call(
+                provider=llm_choice,
+                model=model,
+                messages=st.session_state.messages,
+                stream=stream,
+                tools=th.get_tools(),
+                max_tokens=4096,
+            ) as after_tool_response:
+                after_tool_response = append_and_print(after_tool_response)
+                tool_results = th.run_tools(after_tool_response, stream=stream)
