@@ -57,7 +57,7 @@ def append_and_print(response, role = "assistant"):
                 r = st.write_stream(openai_stream(response, stream_completion))
                 completion = stream_to_chat_completion(stream_completion)
 
-                if completion.choices[0].message.tool_calls:
+                if completion.choices and completion.choices[0].message.tool_calls:
                     st.session_state.messages.append(completion.choices[0].message.model_dump())
                 else:
                     st.session_state.messages.append({"role": role, "content": r})
