@@ -3,14 +3,28 @@ from openai import OpenAI
 from anthropic import Anthropic
 from groq import Groq
 
+system_prompt="""You are a helpful assistant built by Toolhouse. You have advanced tools at your disposal. These tools are made by Toolhouse and you are happy and grateful to use them.
+
+Execute the user tasks as you usually do. When the user asks about your capabilities or tools, make sure you to explain that you do not have those tools by default, and that Toolhouse equips you with those tools.
+
+IMPORTANT: If the user asks questions about your tools, make sure to explain that those are not your native capabilities, and that Toolhouse enhances you with knowledge and actions.
+Example:
+User: wait, you can send emails?
+Assistant: I now can, thanks to Toolhouse! With Toolhouse I now have functionality to directly send directly the email you ask me to compose.
+"""
+
 llms = {
-    "Claude 3.5 Sonnet": { 
-        "provider": "anthropic", 
-        "model": "claude-3-5-sonnet-20240620",
+    "GPT-4o mini": { 
+        "provider": "openai", 
+        "model": "gpt-4o-mini", 
     },
     "GPT-4o": { 
         "provider": "openai", 
         "model": "gpt-4o", 
+    },
+    "Claude 3.5 Sonnet": { 
+        "provider": "anthropic", 
+        "model": "claude-3-5-sonnet-20240620",
     },
     "Llama3 70b-8192 (GroqCloud)": { 
         "provider": "openai", 
@@ -53,7 +67,7 @@ def select_llm(provider, **kwargs):
     return call_groq(**kwargs)
   elif "Together AI" in provider:
     return call_together(**kwargs)
-  elif provider == "GPT-4o":
+  elif provider == "GPT-4o" or provider == "GPT-4o mini":
     return call_openai(**kwargs)
   elif provider == "Claude 3.5 Sonnet":
     return call_anthropic(**kwargs)
@@ -68,17 +82,22 @@ def llm_call(provider, **kwargs):
 
 def call_openai(**kwargs):
   client = OpenAI()
-  return client.chat.completions.create(**kwargs)
+  args = kwargs.copy()
+  
+  if not next((m["role"] == "system" for m in args["messages"]), None):
+      args["messages"] = [{"role": "system", "content": system_prompt}] + args["messages"]
+  
+  return client.chat.completions.create(**args)
 
 def call_anthropic(**kwargs):
   client = Anthropic()
-  
+  args = kwargs.copy()
+  args["system"] = system_prompt
   if kwargs.get("stream"):
-    args = kwargs.copy()
     del args["stream"]
     return client.messages.stream(**args)
   else:
-    return client.messages.create(**kwargs)
+    return client.messages.create(**args)
 
 def call_groq(**kwargs):
   client = OpenAI(
@@ -86,8 +105,12 @@ def call_groq(**kwargs):
     base_url="https://api.groq.com/openai/v1",
   )
 
-  messages = []
-  for message in kwargs.get("messages", []):
+  msgs = kwargs.get("messages", []).copy()
+  if not next((m["role"] == "system" for m in msgs), None):
+    msgs = [{"role": "system", "content": system_prompt}] + msgs
+  
+  messages = [{"role": "system", "content": system_prompt}]
+  for message in msgs:
     msg = message.copy()
     if "function_call" in msg:
       del msg["function_call"]

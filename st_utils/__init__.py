@@ -1,7 +1,5 @@
 import streamlit as st
 from toolhouse.models import OpenAIStream, stream_to_chat_completion
-# from anthropic.types import TextBlock, ToolUseBlock
-# st.session_state.messages = [{'role': 'user', 'content': 'hi!'}, {'role': 'assistant', 'content': [TextBlock(text="Hello! It's nice to meet you. How can I assist you today? Is there anything specific you'd like help with?", type='text')]}, {'role': 'user', 'content': 'can you tell the time?'}, {'role': 'assistant', 'content': [TextBlock(text='Certainly! I\'d be happy to tell you the current time. To do that, I\'ll use the "current_time" function to fetch the most up-to-date information for you.', type='text'), ToolUseBlock(id='toolu_01A7BjS3dLRP18e2cS3YKhkF', input={}, name='current_time', type='tool_use')]}, {'role': 'user', 'content': [{'tool_use_id': 'toolu_01A7BjS3dLRP18e2cS3YKhkF', 'content': '"2024-07-17T19:45:57.566838-07:00"', 'type': 'tool_result'}]}, {'role': 'assistant', 'content': [TextBlock(text="\n\nBased on the information I've received, the current time is July 17, 2024, at 7:45:57 PM Pacific Daylight Time (PDT).\n\nIs there anything else you'd like to know or any other way I can assist you?", type='text')]}, {'role': 'user', 'content': "that's all, thank you!"}, {'role': 'assistant', 'content': [TextBlock(text="You're welcome! I'm glad I could help you with the current time. If you need any further assistance in the future, whether it's checking the time again or help with any other tasks, please don't hesitate to ask. Have a great rest of your day!", type='text')]}]
 
 def anthropic_stream(response):
     for chunk in response.text_stream:
@@ -38,7 +36,6 @@ def print_messages(messages, provider):
                     st.markdown(message["content"])
 
 def append_and_print(response, role = "assistant"):
-    print(st.session_state.stream)
     with st.chat_message(role):
         if st.session_state.provider == 'anthropic':
             if st.session_state.stream:

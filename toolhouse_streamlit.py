@@ -2,6 +2,11 @@ import streamlit as st
 from toolhouse import Toolhouse
 from llms import llms, llm_call
 
+st.set_page_config(
+    page_title="Toolhouse playground",
+    page_icon="https://app.toolhouse.ai/icons/favicon.ico"
+)
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -27,11 +32,10 @@ st.logo(
 with st.sidebar:
     llm_choice = st.selectbox("Model", tuple(llms.keys()))
     st.session_state.stream = st.toggle("Stream responses", True)
-    user = st.text_input("User")
+    user = st.text_input("User", "daniele")
     st.divider()
     t = Toolhouse(provider='anthropic')
     available_tools = t.get_tools()
-
     if not available_tools:
         st.markdown('### No tools installed.')
     
@@ -58,7 +62,7 @@ if prompt := st.chat_input("What is up?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-        
+    
     with llm_call(
         provider=llm_choice,
         model=model,
