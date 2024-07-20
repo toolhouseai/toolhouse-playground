@@ -86,5 +86,3 @@ if prompt := st.chat_input("What is up?"):
             ) as after_tool_response:
                 after_tool_response = append_and_print(after_tool_response)
                 tool_results = th.run_tools(after_tool_response, stream=st.session_state.stream)
-        
-        # st.rerun()
