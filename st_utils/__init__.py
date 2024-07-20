@@ -22,27 +22,27 @@ def openai_render_tool_call(message):
 def print_messages(messages, provider):
     for message in messages:
         if provider == "anthropic":
-                if isinstance(message["content"], str):
-                    with st.chat_message(message["role"]):
-                        st.markdown(message["content"])
-                elif isinstance(message["content"], list):
-                    has_tool = False
-                    msg = []
-                    for m in message["content"]:
-                        if not hasattr(m, "type"):
-                            continue
-                        elif m.type == "text":
-                            msg.append(m.text)
-                        elif m.type == "tool_use":
-                            if not has_tool:
-                                msg.append("**Using tools**")
-                            args = str(m.input) if str(m.input) != "{}" else ""
-                            msg.append(f"```{m.name}({args})```")
-                            has_tool = True
+            if isinstance(message["content"], str):
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
+            elif isinstance(message["content"], list):
+                has_tool = False
+                msg = []
+                for m in message["content"]:
+                    if not hasattr(m, "type"):
+                        continue
+                    elif m.type == "text":
+                        msg.append(m.text)
+                    elif m.type == "tool_use":
+                        if not has_tool:
+                            msg.append("**Using tools**")
+                        args = str(m.input) if str(m.input) != "{}" else ""
+                        msg.append(f"```{m.name}({args})```")
+                        has_tool = True
 
-                    if msg:
-                        with st.chat_message(message["role"]):
-                            st.markdown("\n\n".join(msg))
+                if msg:
+                    with st.chat_message(message["role"]):
+                        st.markdown("\n\n".join(msg))
         else:
             if isinstance(message.get("tool_calls"), list):
                 with st.chat_message("assistant"):
@@ -78,6 +78,19 @@ def append_and_print(response, role = "assistant"):
                     st.session_state.messages.append({"role": role, "content": response.content})
                     text = next((c.text for c in response.content if hasattr(c, "text")), '…')
                     st.markdown(text)
+
+                    has_tool = False
+                    msg = []
+                    for m in response.content:
+                        if hasattr(m, "type") and m.type == "tool_use":
+                            has_tool = True
+                            args = str(m.input) if str(m.input) != "{}" else ""
+                            msg.append(f"```{m.name}({args})```")
+                    
+                    if has_tool:
+                        msg = ["**Using tools**"] + msg
+                        st.markdown("\n\n".join(msg))
+
                 return response
         else:
             if st.session_state.stream:
