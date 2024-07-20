@@ -7,7 +7,7 @@ def anthropic_stream(response):
 
 def openai_stream(response, completion):
     for chunk in response:
-        yield chunk    
+        yield chunk
         completion.add(chunk)
 
 def print_messages(messages, provider):
@@ -28,9 +28,14 @@ def print_messages(messages, provider):
                             st.markdown(f"`{m.name}({m.input})`")
         else:
             if isinstance(message.get("tool_calls"), list):
-                with st.chat_message("tool"):
-                    calls = [f"`{c["function"]["name"]}({c["function"]["arguments"]})`" for c in message["tool_calls"]]
-                    st.markdown('\n'.join(calls))
+                with st.chat_message("assistant"):
+                    msg = ["**Using tools**"]
+                    for tool in message["tool_calls"]:
+                        args = tool["function"]["arguments"] if tool["function"]["arguments"] != "{}" else ""
+                        msg.append(f'```{tool["function"]["name"]}({args})```')
+
+                    st.markdown("\n\n".join(msg))
+
             elif message["role"] != "tool":
                 with st.chat_message(message["role"]):
                     st.markdown(message["content"])
@@ -46,7 +51,7 @@ def append_and_print(response, role = "assistant"):
                 if response.content is not None:
                     st.session_state.messages.append({"role": role, "content": response.content})
                     text = next((c.text for c in response.content if hasattr(c, "text")), '…')
-                    st.write(text)
+                    st.markdown(text)
                 return response
         else:
             if st.session_state.stream:
@@ -55,16 +60,27 @@ def append_and_print(response, role = "assistant"):
                 completion = stream_to_chat_completion(stream_completion)
 
                 if completion.choices and completion.choices[0].message.tool_calls:
+                    msg = ["**Using tools**"]
+                    for tool in completion.choices[0].message.tool_calls:
+                        args = tool.function.arguments if tool.function.arguments != "{}" else ""
+                        msg.append(f'```{tool.function.name}({args})```')
+
                     st.session_state.messages.append(completion.choices[0].message.model_dump())
+                    st.markdown("\n\n".join(msg))
                 else:
                     st.session_state.messages.append({"role": role, "content": r})
+                
                 return stream_completion
             else:
                 st.session_state.messages.append(response.choices[0].message.model_dump())
                 if (text := response.choices[0].message.content) is not None:
-                    st.write(text)
+                    st.markdown(text)
                 elif response.choices[0].message.tool_calls:
-                    tool_calls = response.choices[0].message.tool_calls
-                    tools = [t.function.name for t in tool_calls]
-                    st.write(f"Calling: " + ", ".join(tools))
+                    msg = ["**Using tools**"]
+                    for tool in response.choices[0].message.tool_calls:
+                        args = tool.function.arguments if tool.function.arguments != "{}" else ""
+                        msg.append(f'```{tool.function.name}({args})```')
+
+                    st.session_state.messages.append(response.choices[0].message.model_dump())
+                    st.markdown("\n\n".join(msg))
                 return response
