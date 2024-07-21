@@ -35,6 +35,19 @@ llms = {
         "provider": "anthropic", 
         "model": "claude-3-5-sonnet-20240620",
     },
+    "Claude 3 Haiku": { 
+        "provider": "anthropic", 
+        "model": "claude-3-haiku-20240307",
+    },
+    "Claude 3 Sonnet": { 
+        "provider": "anthropic", 
+        "model": "claude-3-sonnet-20240229",
+    },
+    "Claude 3 Opus": { 
+        "provider": "anthropic", 
+        "model": "claude-3-opus-20240229",
+    },
+
     "Llama3 70b-8192 (GroqCloud)": { 
         "provider": "openai", 
         "model": "llama3-groq-70b-8192-tool-use-preview", 
