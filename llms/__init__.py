@@ -47,12 +47,19 @@ llms = {
         "provider": "anthropic", 
         "model": "claude-3-opus-20240229",
     },
-
-    "Llama3 70b-8192 (GroqCloud)": { 
+    "Llama 3.1 70B (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "llama-3.1-70b-versatile", 
+    },
+    "Llama 3.1 8B (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "llama-3.1-8b-instant", 
+    },
+    "Llama 3 70b-8192 (GroqCloud)": { 
         "provider": "openai", 
         "model": "llama3-groq-70b-8192-tool-use-preview", 
     },
-    "Llama3 8b-8192 (GroqCloud)": { 
+    "Llama 3 8b-8192 (GroqCloud)": { 
         "provider": "openai", 
         "model": "llama3-groq-8b-8192-tool-use-preview", 
     },
