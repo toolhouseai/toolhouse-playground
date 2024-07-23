@@ -43,7 +43,8 @@ with st.sidebar:
     else:
         st.subheader("Installed tools")
         for tool in available_tools:
-            st.page_link(f"https://app.toolhouse.ai/store/{tool.get("name")}", label=tool.get("name"))
+            tool_name = tool.get("name")
+            st.page_link(f"https://app.toolhouse.ai/store/{tool_name}", label=tool_name)
         
         st.caption("\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store).")
     

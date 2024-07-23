@@ -115,11 +115,15 @@ def call_anthropic(**kwargs):
   client = Anthropic()
   args = kwargs.copy()
   args["system"] = system_prompt
+  
+  if kwargs.get("tools") is None:
+    del args["tools"]
+  
   if kwargs.get("stream"):
     del args["stream"]
     return client.messages.stream(**args)
   else:
-    return client.messages.create(**args)
+    return client.messages.create(**args)    
 
 def call_groq(**kwargs):
   client = OpenAI(
