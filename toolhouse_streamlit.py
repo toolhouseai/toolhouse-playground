@@ -87,4 +87,4 @@ if prompt := st.chat_input("What is up?"):
                 max_tokens=4096,
             ) as after_tool_response:
                 after_tool_response = append_and_print(after_tool_response)
-                tool_results = th.run_tools(after_tool_response, stream=st.session_state.stream)
+                tool_results = th.run_tools(after_tool_response, stream=st.session_state.stream, append=False)
