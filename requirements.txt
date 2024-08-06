@@ -4,6 +4,7 @@ altair==5.3.0
 annotated-types==0.7.0
 anthropic==0.31.0
 anyio==4.4.0
+async-timeout==4.0.3
 attrs==23.2.0
 blinker==1.8.2
 cachetools==5.3.3
@@ -12,6 +13,7 @@ charset-normalizer==3.3.2
 click==8.1.7
 distro==1.9.0
 eval_type_backport==0.2.0
+exceptiongroup==1.2.2
 filelock==3.15.4
 frozenlist==1.4.1
 fsspec==2024.6.1
@@ -37,7 +39,6 @@ openai==1.35.13
 packaging==24.1
 pandas==2.2.2
 pillow==10.4.0
-pip==24.0
 protobuf==5.27.2
 pyarrow==16.1.0
 pydantic==2.8.2
@@ -62,7 +63,7 @@ tenacity==8.5.0
 together==1.2.1
 tokenizers==0.19.1
 toml==0.10.2
-toolhouse==1.0.0
+toolhouse==1.1.2
 toolz==0.12.1
 tornado==6.4.1
 tqdm==4.66.4
