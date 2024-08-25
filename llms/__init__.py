@@ -20,9 +20,29 @@ Assistant: I now can, thanks to Toolhouse! With Toolhouse I now have functionali
 </example>
 
 When using the time tool, format the time in a user friendly way.
+
+If the user asks you if you remember something, make sure to use the memory_fetch tool with no arguments to retrieve the information.
+
+Use the memory_fetch tool with no arguments every time the user asks you to to create a recipe for their favorite food.
 """
 
 llms = {
+    "Llama 3 70b-8192 (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "llama3-groq-70b-8192-tool-use-preview", 
+    },
+    "Llama 3 8b-8192 (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "llama3-groq-8b-8192-tool-use-preview", 
+    },
+    "Llama 3.1 8B (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "llama-3.1-8b-instant", 
+    },
+    "Llama 3.1 70B (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "llama-3.1-70b-versatile", 
+    },
     "GPT-4o mini": { 
         "provider": "openai", 
         "model": "gpt-4o-mini", 
@@ -46,22 +66,6 @@ llms = {
     "Claude 3 Opus": { 
         "provider": "anthropic", 
         "model": "claude-3-opus-20240229",
-    },
-    "Llama 3.1 70B (GroqCloud)": { 
-        "provider": "openai", 
-        "model": "llama-3.1-70b-versatile", 
-    },
-    "Llama 3.1 8B (GroqCloud)": { 
-        "provider": "openai", 
-        "model": "llama-3.1-8b-instant", 
-    },
-    "Llama 3 70b-8192 (GroqCloud)": { 
-        "provider": "openai", 
-        "model": "llama3-groq-70b-8192-tool-use-preview", 
-    },
-    "Llama 3 8b-8192 (GroqCloud)": { 
-        "provider": "openai", 
-        "model": "llama3-groq-8b-8192-tool-use-preview", 
     },
     "Mixtral 8x7b (GroqCloud)": { 
         "provider": "openai", 
@@ -138,11 +142,17 @@ def call_groq(**kwargs):
     base_url="https://api.groq.com/openai/v1",
   )
 
+
+  if kwargs.get("tools"):
+    sys_prompt = [{"role": "system", "content": system_prompt}]
+  else:
+    sys_prompt = [{"role": "system", "content": "You are a helpful assistant built by Toolhouse. If the user asks you to perform a task for which you don't have a tool, you must politely decline the request."}]
+    
   msgs = kwargs.get("messages", []).copy()
   if not next((m["role"] == "system" for m in msgs), None):
-    msgs = [{"role": "system", "content": system_prompt}] + msgs
+    msgs = sys_prompt + msgs
   
-  messages = [{"role": "system", "content": system_prompt}]
+  messages = sys_prompt
   for message in msgs:
     msg = message.copy()
     if "function_call" in msg:
