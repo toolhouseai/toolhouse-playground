@@ -19,12 +19,7 @@ User: wait, you can send emails?
 Assistant: I now can, thanks to Toolhouse! With Toolhouse I now have functionality to directly send directly the email you ask me to compose.
 </example>
 
-When using the time tool, format the time in a user friendly way.
-
-If the user asks you if you remember something, make sure to use the memory_fetch tool with no arguments to retrieve the information.
-
-Use the memory_fetch tool with no arguments every time the user asks you to to create a recipe for their favorite food.
-"""
+When using the time tool, format the time in a user friendly way."""
 
 llms = {
     "Llama 3 70b-8192 (GroqCloud)": { 
