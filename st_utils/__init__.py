@@ -1,5 +1,5 @@
 import streamlit as st
-from toolhouse.models import OpenAIStream, stream_to_chat_completion
+from toolhouse.models.Stream import ToolhouseStreamStorage, stream_to_chat_completion
 from types import SimpleNamespace
 
 def anthropic_stream(response):
@@ -94,7 +94,7 @@ def append_and_print(response, role = "assistant"):
                 return response
         else:
             if st.session_state.stream:
-                stream_completion = OpenAIStream()
+                stream_completion = ToolhouseStreamStorage()
                 r = st.write_stream(openai_stream(response, stream_completion))
                 completion = stream_to_chat_completion(stream_completion)
 

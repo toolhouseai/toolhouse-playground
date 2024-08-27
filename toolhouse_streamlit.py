@@ -1,7 +1,7 @@
 import streamlit as st
 from toolhouse import Toolhouse
 from llms import llms, llm_call
-import requests
+from http_exceptions.client_exceptions import NotFoundException
 
 st.set_page_config(
     page_title="Toolhouse Playground",
@@ -31,14 +31,22 @@ with st.sidebar:
     st.title("💬 Playground")
     st.markdown("#### Get your $150: join.toolhouse.ai")
     image = st.image("join.png")
+    with st.expander("Advanced"):
+        llm_choice = st.selectbox("Model", tuple(llms.keys()))
+        st.session_state.stream = st.toggle("Stream responses", True)
+        user = st.text_input("User", "daniele")
+        bundle = st.text_input("Bundle", "default")
     
     t = Toolhouse(provider="anthropic")
-    available_tools = t.get_tools()
+    try:
+        available_tools = t.get_tools(bundle=bundle)
+    except NotFoundException:
+        available_tools = None
 
     if not available_tools:
         st.subheader("No tools installed")
         st.caption(
-            "Go to the [Tool Store](https://app.toolhouse.ai/store) to install your tools."
+            "Go to the [Tool Store](https://app.toolhouse.ai/store) to install your tools, or visit [Bundles](https://app.toolhouse.ai/bundles) to check if the selected bundle exists."
         )
     else:
         st.subheader("Installed tools")
@@ -47,13 +55,10 @@ with st.sidebar:
             st.page_link(f"https://app.toolhouse.ai/store/{tool_name}", label=tool_name)
 
         st.caption(
-            "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store)."
+            "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store) or your [Bundles](https://app.toolhouse.ai/bundles)."
         )
-    
-    with st.expander("Advanced"):
-        llm_choice = st.selectbox("Model", tuple(llms.keys()))
-        st.session_state.stream = st.toggle("Stream responses", True)
-        user = st.text_input("User", "daniele")
+
+
 
 
 llm = llms.get(llm_choice)
@@ -78,13 +83,13 @@ if prompt := st.chat_input("What is up?"):
         model=model,
         messages=st.session_state.messages,
         stream=st.session_state.stream,
-        tools=th.get_tools(),
+        tools=th.get_tools(bundle=bundle),
         max_tokens=4096,
         temperature=0.1,
     ) as response:
         completion = append_and_print(response)
         tool_results = th.run_tools(
-            completion, stream=st.session_state.stream, append=False
+            completion, append=False
         )
 
         while tool_results:
@@ -94,11 +99,11 @@ if prompt := st.chat_input("What is up?"):
                 model=model,
                 messages=st.session_state.messages,
                 stream=st.session_state.stream,
-                tools=th.get_tools(),
+                tools=th.get_tools(bundle=bundle),
                 max_tokens=4096,
                 temperature=0.1,
             ) as after_tool_response:
                 after_tool_response = append_and_print(after_tool_response)
                 tool_results = th.run_tools(
-                    after_tool_response, stream=st.session_state.stream, append=False
+                    after_tool_response, append=False
                 )
