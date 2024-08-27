@@ -1,7 +1,7 @@
 import streamlit as st
 from toolhouse import Toolhouse
 from llms import llms, llm_call
-import requests
+from http_exceptions.client_exceptions import NotFoundException
 
 st.set_page_config(
     page_title="Toolhouse Playground",
@@ -38,12 +38,15 @@ with st.sidebar:
         bundle = st.text_input("Bundle", "default")
     
     t = Toolhouse(provider="anthropic")
-    available_tools = t.get_tools(bundle=bundle)
+    try:
+        available_tools = t.get_tools(bundle=bundle)
+    except NotFoundException:
+        available_tools = None
 
     if not available_tools:
         st.subheader("No tools installed")
         st.caption(
-            "Go to the [Tool Store](https://app.toolhouse.ai/store) to install your tools."
+            "Go to the [Tool Store](https://app.toolhouse.ai/store) to install your tools, or visit [Bundles](https://app.toolhouse.ai/bundles) to check if the selected bundle exists."
         )
     else:
         st.subheader("Installed tools")
@@ -54,7 +57,6 @@ with st.sidebar:
         st.caption(
             "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store)."
         )
-    
 
 
 
