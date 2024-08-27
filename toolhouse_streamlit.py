@@ -55,7 +55,7 @@ with st.sidebar:
             st.page_link(f"https://app.toolhouse.ai/store/{tool_name}", label=tool_name)
 
         st.caption(
-            "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store)."
+            "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store) or your [Bundles](https://app.toolhouse.ai/bundles)."
         )
 
 
