@@ -41,8 +41,12 @@ bundle="default"
 
 with st.sidebar:
     st.title("💬 Playground")
-    st.markdown("#### Get your $150: join.toolhouse.ai")
-    image = st.image("join.png")
+    st.markdown("""
+    **Want to earn more credits?**
+
+    
+    ✨ [Join our Discord](https://discord.toolhouse.ai) and become a Toolhouse Partner
+    """)
 
     # with st.expander("Advanced"):
     #     llm_choice = st.selectbox("Model", tuple(llms.keys()))
