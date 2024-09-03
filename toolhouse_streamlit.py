@@ -3,6 +3,13 @@ from toolhouse import Toolhouse
 from llms import llms, llm_call
 from http_exceptions.client_exceptions import NotFoundException
 
+# Check for Toolhouse API key
+if not st.query_params.get("th_token"):
+    st.error("Toolhouse API Key is missing!")
+    st.markdown("To access the playground, you need to provide a Toolhouse API Key.")
+    st.markdown("Get your API Key from the [Toolhouse dashboard](https://app.toolhouse.ai/settings/api-keys)")
+    st.stop()
+
 st.set_page_config(
     page_title="Toolhouse Playground",
     page_icon="https://app.toolhouse.ai/icons/favicon.ico",
@@ -27,17 +34,23 @@ dotenv.load_dotenv()
 
 st.logo("logo.svg", link="https://toolhouse.ai")
 
+# Set some default values
+llm_choice = "Llama 3 70b-8192 (GroqCloud)"
+user= "anonymous"
+bundle="default"
+
 with st.sidebar:
     st.title("💬 Playground")
     st.markdown("#### Get your $150: join.toolhouse.ai")
     image = st.image("join.png")
-    with st.expander("Advanced"):
-        llm_choice = st.selectbox("Model", tuple(llms.keys()))
-        st.session_state.stream = st.toggle("Stream responses", True)
-        user = st.text_input("User", "daniele")
-        bundle = st.text_input("Bundle", "default")
+
+    # with st.expander("Advanced"):
+    #     llm_choice = st.selectbox("Model", tuple(llms.keys()))
+    #     st.session_state.stream = st.toggle("Stream responses", True)
+    #     user = st.text_input("User", "anonymous")
+    #     bundle = st.text_input("Bundle", "default")
     
-    t = Toolhouse(provider="anthropic")
+    t = Toolhouse(access_token=st.query_params["th_token"], provider="anthropic")
     try:
         available_tools = t.get_tools(bundle=bundle)
     except NotFoundException:
@@ -65,7 +78,11 @@ llm = llms.get(llm_choice)
 st.session_state.provider = llm.get("provider")
 model = llm.get("model")
 
-th = Toolhouse(provider=llm.get("provider"))
+try:
+    th = Toolhouse(access_token=st.query_params["th_token"], provider=llm.get("provider"))
+except SomeSpecificToolhouseAuthError as e:  # Replace with the actual error class
+    st.error(f"Invalid API key: {str(e)}")
+    st.stop()
 
 th.set_metadata("timezone", -7)
 if user:

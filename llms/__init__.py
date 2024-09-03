@@ -133,7 +133,7 @@ def call_anthropic(**kwargs):
 
 def call_groq(**kwargs):
   client = OpenAI(
-    api_key=os.environ.get('GROQCLOUD_API_KEY'),
+    api_key=os.environ.get('GROQ_API_KEY'),
     base_url="https://api.groq.com/openai/v1",
   )
 
