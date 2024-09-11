@@ -55,6 +55,7 @@ with st.sidebar:
     #     bundle = st.text_input("Bundle", "default")
     
     t = Toolhouse(access_token=st.query_params["th_token"], provider="anthropic")
+        
     try:
         available_tools = t.get_tools(bundle=bundle)
     except NotFoundException:
@@ -75,16 +76,17 @@ with st.sidebar:
             "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store) or your [Bundles](https://app.toolhouse.ai/bundles)."
         )
 
-
-
-
 llm = llms.get(llm_choice)
 st.session_state.provider = llm.get("provider")
 model = llm.get("model")
 
 try:
     th = Toolhouse(access_token=st.query_params["th_token"], provider=llm.get("provider"))
-except SomeSpecificToolhouseAuthError as e:  # Replace with the actual error class
+    timezone = st.query_params["tz"] or 0
+
+    th.set_metadata("user", st.query_params["th_token"])
+    th.set_metadata("timezone", timezone)
+except Exception as e:
     st.error(f"Invalid API key: {str(e)}")
     st.stop()
 
