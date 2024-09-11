@@ -3,23 +3,36 @@ from openai import OpenAI
 from anthropic import Anthropic
 from groq import Groq
 
-system_prompt="""You are a helpful assistant built by Toolhouse. You have advanced tools at your disposal:
+def prepare_system_prompt(tools):
+  system_prompt = "You are a helpful assistant built by Toolhouse. You do not have advanced tools at your disposal. If the user asks you to perform a task for which you don't have a tool, you must politely decline the request, and tell them to visit the Tool Store at https://app.toolhouse.ai/store."
 
-- a tool that gives you the current time
-- a tool to retrieve information about the user, such as preferences or things the user told you to remember
-- a tool to send emails 
+  if isinstance(tools, list) and len(tools) > 0:
+    tool_descriptions = []
+    for tool in tools:
+      tool_name = tool.get("name")
+      tool_description = tool.get("description")
+      
+      if tool_name == "memory_fetch":
+        tool_description = "Allows you to retrieve information from previous conversations. You MUST use this tool when the user asks you to print what you know about them. Use this tool to get details about previous conversations. You can also use this tool when the user asks you to retrieve previous conversations or previously stored details. You cannot use this tool to store memories. You can only use this tool to remember things."
+      tool_descriptions.append(f"{tool_name}: {tool_description}")
 
-These tools are made by Toolhouse and you are happy and grateful to use them.
+    system_prompt=f"""You are a helpful assistant built by Toolhouse. You have the following advanced tools at your disposal:
+    
+    {"\n".join(tool_descriptions)}
 
-Execute the user tasks as you usually do. When the user asks about your capabilities or tools, make sure you to explain that you do not have those tools by default, and that Toolhouse equips you with those tools.
+    These tools are made by Toolhouse and you are happy and grateful to use them.
 
-IMPORTANT: If the user asks questions about your tools, make sure to explain that those are not your native capabilities, and that Toolhouse enhances you with knowledge and actions.
-<example>
-User: wait, you can send emails?
-Assistant: I now can, thanks to Toolhouse! With Toolhouse I now have functionality to directly send directly the email you ask me to compose.
-</example>
+    Execute the user tasks as you usually do. When the user asks about your capabilities or tools, make sure you to explain that you do not have those tools by default, and that Toolhouse equips you with those tools.
 
-When using the time tool, format the time in a user friendly way."""
+    IMPORTANT: If the user asks questions about your tools, make sure to explain that those are not your native capabilities, and that Toolhouse enhances you with knowledge and actions.
+    <example>
+    User: wait, you can send emails?
+    Assistant: I now can, thanks to Toolhouse! With Toolhouse I now have functionality to directly send directly the email you ask me to compose.
+    </example>
+
+    If the time tool is installed and you use it, always format the time output in a user friendly way."""
+
+  return system_prompt
 
 llms = {
     "Llama 3 70b-8192 (GroqCloud)": { 
@@ -113,14 +126,14 @@ def call_openai(**kwargs):
   args = kwargs.copy()
   
   if not next((m["role"] == "system" for m in args["messages"]), None):
-      args["messages"] = [{"role": "system", "content": system_prompt}] + args["messages"]
+      args["messages"] = [{"role": "system", "content": prepare_system_prompt(kwargs.get("tools", []))}] + args["messages"]
   
   return client.chat.completions.create(**args)
 
 def call_anthropic(**kwargs):
   client = Anthropic()
   args = kwargs.copy()
-  args["system"] = system_prompt
+  args["system"] = prepare_system_prompt(kwargs.get("tools", []))
   
   if kwargs.get("tools") is None:
     del args["tools"]
@@ -138,10 +151,7 @@ def call_groq(**kwargs):
   )
 
 
-  if kwargs.get("tools"):
-    sys_prompt = [{"role": "system", "content": system_prompt}]
-  else:
-    sys_prompt = [{"role": "system", "content": "You are a helpful assistant built by Toolhouse. If the user asks you to perform a task for which you don't have a tool, you must politely decline the request."}]
+  sys_prompt = [{"role": "system", "content": prepare_system_prompt(kwargs.get("tools", []))}]
     
   msgs = kwargs.get("messages", []).copy()
   if not next((m["role"] == "system" for m in msgs), None):

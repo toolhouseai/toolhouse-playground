@@ -1,7 +1,14 @@
 import streamlit as st
 from toolhouse import Toolhouse
-from llms import llms, llm_call
+from llms import llms, llm_call, prepare_system_prompt
 from http_exceptions.client_exceptions import NotFoundException
+
+# Check for Toolhouse API key
+if not st.query_params.get("th_token"):
+    st.error("Toolhouse API Key is missing!")
+    st.markdown("To access the playground, you need to provide a Toolhouse API Key.")
+    st.markdown("Get your API Key from the [Toolhouse dashboard](https://app.toolhouse.ai/settings/api-keys)")
+    st.stop()
 
 st.set_page_config(
     page_title="Toolhouse Playground",
@@ -10,9 +17,6 @@ st.set_page_config(
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-if "user" not in st.session_state:
-    st.session_state.user = ""
 
 if "stream" not in st.session_state:
     st.session_state.stream = True
@@ -27,19 +31,23 @@ dotenv.load_dotenv()
 
 st.logo("logo.svg", link="https://toolhouse.ai")
 
+# Set some default values
+llm_choice = "GPT-4o mini"
+bundle="default"
+
 with st.sidebar:
     st.title("💬 Playground")
-    st.markdown("#### Get your $150: join.toolhouse.ai")
-    image = st.image("join.png")
-    with st.expander("Advanced"):
-        llm_choice = st.selectbox("Model", tuple(llms.keys()))
-        st.session_state.stream = st.toggle("Stream responses", True)
-        user = st.text_input("User", "daniele")
-        bundle = st.text_input("Bundle", "default")
+    st.markdown("""
+    **Want to earn more credits?**
+
     
-    t = Toolhouse(provider="anthropic")
+    ✨ [Join our Discord](https://discord.toolhouse.ai) and become a Toolhouse Partner
+    """)
+
+    t = Toolhouse(access_token=st.query_params["th_token"], provider="anthropic")
+        
     try:
-        available_tools = t.get_tools(bundle=bundle)
+        available_tools = t.get_tools()
     except NotFoundException:
         available_tools = None
 
@@ -58,18 +66,19 @@ with st.sidebar:
             "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store) or your [Bundles](https://app.toolhouse.ai/bundles)."
         )
 
-
-
-
 llm = llms.get(llm_choice)
 st.session_state.provider = llm.get("provider")
 model = llm.get("model")
 
-th = Toolhouse(provider=llm.get("provider"))
+try:
+    th = Toolhouse(access_token=st.query_params["th_token"], provider=llm.get("provider"))
+    timezone = st.query_params["tz"] or 0
 
-th.set_metadata("timezone", -7)
-if user:
-    th.set_metadata("id", user)
+    th.set_metadata("id", st.query_params["th_token"])
+    th.set_metadata("timezone", timezone)
+except Exception as e:
+    st.error(f"Invalid API key: {str(e)}")
+    st.stop()
 
 print_messages(st.session_state.messages, st.session_state.provider)
 
