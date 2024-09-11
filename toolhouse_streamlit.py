@@ -18,9 +18,6 @@ st.set_page_config(
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "user" not in st.session_state:
-    st.session_state.user = ""
-
 if "stream" not in st.session_state:
     st.session_state.stream = True
 
@@ -35,8 +32,7 @@ dotenv.load_dotenv()
 st.logo("logo.svg", link="https://toolhouse.ai")
 
 # Set some default values
-llm_choice = "Llama 3.1 8B (GroqCloud)"
-user= "anonymous"
+llm_choice = "GPT-4o mini"
 bundle="default"
 
 with st.sidebar:
