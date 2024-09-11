@@ -78,15 +78,11 @@ try:
     th = Toolhouse(access_token=st.query_params["th_token"], provider=llm.get("provider"))
     timezone = st.query_params["tz"] or 0
 
-    th.set_metadata("user", st.query_params["th_token"])
+    th.set_metadata("id", st.query_params["th_token"])
     th.set_metadata("timezone", timezone)
 except Exception as e:
     st.error(f"Invalid API key: {str(e)}")
     st.stop()
-
-th.set_metadata("timezone", -7)
-if user:
-    th.set_metadata("id", user)
 
 print_messages(st.session_state.messages, st.session_state.provider)
 
