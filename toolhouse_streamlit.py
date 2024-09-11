@@ -1,6 +1,6 @@
 import streamlit as st
 from toolhouse import Toolhouse
-from llms import llms, llm_call
+from llms import llms, llm_call, prepare_system_prompt
 from http_exceptions.client_exceptions import NotFoundException
 
 # Check for Toolhouse API key
@@ -35,7 +35,7 @@ dotenv.load_dotenv()
 st.logo("logo.svg", link="https://toolhouse.ai")
 
 # Set some default values
-llm_choice = "Llama 3 70b-8192 (GroqCloud)"
+llm_choice = "Llama 3.1 8B (GroqCloud)"
 user= "anonymous"
 bundle="default"
 
@@ -48,16 +48,10 @@ with st.sidebar:
     ✨ [Join our Discord](https://discord.toolhouse.ai) and become a Toolhouse Partner
     """)
 
-    # with st.expander("Advanced"):
-    #     llm_choice = st.selectbox("Model", tuple(llms.keys()))
-    #     st.session_state.stream = st.toggle("Stream responses", True)
-    #     user = st.text_input("User", "anonymous")
-    #     bundle = st.text_input("Bundle", "default")
-    
     t = Toolhouse(access_token=st.query_params["th_token"], provider="anthropic")
         
     try:
-        available_tools = t.get_tools(bundle=bundle)
+        available_tools = t.get_tools()
     except NotFoundException:
         available_tools = None
 
