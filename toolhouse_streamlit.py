@@ -8,6 +8,7 @@ from components import sidebar, hero
 import dotenv
 
 th = Toolhouse(access_token=st.query_params["th_token"])
+th.set_base_url("https://g6dywws9a0.execute-api.us-west-2.amazonaws.com/v1")
 dotenv.load_dotenv()
 
 st.set_page_config(

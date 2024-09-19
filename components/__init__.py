@@ -57,6 +57,7 @@ def hero():
           st.stop()
       else:
           st.markdown(f'<div style="display:flex;"><div><img style="width:3rem;height: 3rem;margin: 1rem 2rem" src="{tool.get("logo")}" /></div><div style="flex:1"><h2 style="font-weight:700;padding: 1rem 0">Try {tool.get('title')}</h2></div>', unsafe_allow_html=True)
-          st.markdown("Click the Try button to run this prompt and see the result.")
+          st.markdown("Click the Try button to run this tool with the following prompt and see the result.")
           st.markdown(f"*{tool.get("prompt")}*")
-          st.button("Try this prompt", key=f"button-{st.query_params.get("tool_id")}", type="primary", on_click=hide_hero_and_call, args=[tool.get("prompt")])
+          if not st.session_state.hide_hero:
+            st.button("Try this prompt", key=f"button-{st.query_params.get("tool_id")}", type="primary", on_click=hide_hero_and_call, args=[tool.get("prompt")])
