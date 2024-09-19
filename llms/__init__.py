@@ -5,10 +5,6 @@ from groq import Groq
 
 system_prompt="""You are a helpful assistant built by Toolhouse. You have advanced tools at your disposal:
 
-- a tool that gives you the current time
-- a tool to retrieve information about the user, such as preferences or things the user told you to remember
-- a tool to send emails 
-
 These tools are made by Toolhouse and you are happy and grateful to use them.
 
 Execute the user tasks as you usually do. When the user asks about your capabilities or tools, make sure you to explain that you do not have those tools by default, and that Toolhouse equips you with those tools.
@@ -22,6 +18,10 @@ Assistant: I now can, thanks to Toolhouse! With Toolhouse I now have functionali
 When using the time tool, format the time in a user friendly way."""
 
 llms = {
+    "Claude 3.5 Sonnet": { 
+        "provider": "anthropic", 
+        "model": "claude-3-5-sonnet-20240620",
+    },
     "Llama 3 70b-8192 (GroqCloud)": { 
         "provider": "openai", 
         "model": "llama3-groq-70b-8192-tool-use-preview", 
@@ -45,10 +45,6 @@ llms = {
     "GPT-4o": { 
         "provider": "openai", 
         "model": "gpt-4o", 
-    },
-    "Claude 3.5 Sonnet": { 
-        "provider": "anthropic", 
-        "model": "claude-3-5-sonnet-20240620",
     },
     "Claude 3 Haiku": { 
         "provider": "anthropic", 
