@@ -4,7 +4,6 @@ from llms import llms, llm_call
 from http_exceptions.client_exceptions import NotFoundException
 import time
 
-BASE_URL = "https://g6dywws9a0.execute-api.us-west-2.amazonaws.com/v1"
 st.set_page_config(
     page_title="Toolhouse Playground",
     page_icon="https://app.toolhouse.ai/icons/favicon.ico",
@@ -40,7 +39,7 @@ with st.sidebar:
         bundle = st.text_input("Bundle", "default")
 
     t = Toolhouse(provider="anthropic")
-    t.set_base_url(BASE_URL)
+
     try:
         # start = time.time()
         available_tools = t.get_tools(bundle=bundle)
@@ -73,7 +72,7 @@ st.session_state.provider = llm.get("provider")
 model = llm.get("model")
 
 th = Toolhouse(provider=llm.get("provider"))
-th.set_base_url(BASE_URL)
+
 th.set_metadata("timezone", -7)
 if user:
     th.set_metadata("id", user)
