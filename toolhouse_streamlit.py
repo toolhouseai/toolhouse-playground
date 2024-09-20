@@ -1,5 +1,5 @@
 import streamlit as st
-from toolhouse import Toolhouse
+from toolhouse import Toolhouse, Provider
 from llms import llms, llm_call
 from http_exceptions.client_exceptions import NotFoundException
 from st_utils import print_messages, append_and_print
@@ -7,7 +7,7 @@ from tools import tool_prompts
 from components import sidebar, hero
 import dotenv
 
-th = Toolhouse(access_token=st.query_params["th_token"])
+th = Toolhouse(access_token=st.query_params["th_token"], provider=Provider.ANTHROPIC)
 th.set_base_url("https://g6dywws9a0.execute-api.us-west-2.amazonaws.com/v1")
 dotenv.load_dotenv()
 
@@ -55,7 +55,7 @@ if "suggestions" not in st.session_state:
 st.logo("logo.svg", link="https://toolhouse.ai")
 
 # Set some default values
-llm_choice = "GPT-4o mini"
+llm_choice = "Claude 3.5 Sonnet"
 
 llm = llms.get(llm_choice)
 st.session_state.provider = llm.get("provider")
@@ -83,7 +83,7 @@ def call_llm(prompt):
         model=model,
         messages=st.session_state.messages,
         stream=st.session_state.stream,
-        tools=th.get_tools(),
+        tools=st.session_state.available_tools,
         max_tokens=4096,
         temperature=0.1,
     ) as response:
@@ -99,7 +99,7 @@ def call_llm(prompt):
                 model=model,
                 messages=st.session_state.messages,
                 stream=st.session_state.stream,
-                tools=th.get_tools(),
+                tools=st.session_state.available_tools,
                 max_tokens=4096,
                 temperature=0.1,
             ) as after_tool_response:

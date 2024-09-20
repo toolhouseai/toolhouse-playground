@@ -19,7 +19,7 @@ def sidebar():
         else:
             st.subheader("Installed tools")
             for tool in st.session_state.available_tools:
-                tool_name = tool.get("function").get("name")
+                tool_name = tool.get("name")
                 st.page_link(f"https://app.toolhouse.ai/store/{tool_name}", label=tool_name)
 
             st.caption(

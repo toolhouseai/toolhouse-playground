@@ -30,7 +30,14 @@ def prepare_system_prompt(tools):
     Assistant: I now can, thanks to Toolhouse! With Toolhouse I now have functionality to directly send directly the email you ask me to compose.
     </example>
 
-    If the time tool is installed and you use it, always format the time output in a user friendly way."""
+    If the time tool is installed and you use it, always format the time output in a user friendly way.
+    
+    If the code interpreter tool is available and you use it, you must do the following:
+      1. Before using the tool, ALWAYS print the code you wish to run through the tool. You can then call code_interpreter with that code.
+      2. Run the tool without asking the user to confirm.
+      3. ALWAYS show the result you got before proceeding with further actions.
+      4. The code interpreter tool cannot see or access other tools. Generate code that does not call other tools.
+    """
 
   return system_prompt
 

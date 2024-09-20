@@ -1,4 +1,4 @@
-from openai import OpenAI
+from anthropic import Anthropic
 import json
 
 tool_prompts = {
@@ -145,20 +145,30 @@ tool_prompts = {
 }
 
 def generate_prompt_suggestions(tools):
-  prompt = "Given the tools at your disposal, suggest 3 prompts I could use to try out cool use cases. Give me the result in JSON format as a dictionary with a single key named prompts and containing the prompts as strings in an array. Give me just the JSON array with no text before or after. Do not use any tools to generate your answer."
-  client = OpenAI()
-  response = client.chat.completions.create(
-    model="gpt-4o-mini",
+  prompt = "Look at the tools at your disposal, then suggest 3 prompts I could use to try out cool use cases with those. Feel free create suggestions that may require the use of more than one tool at the same time, for example tools that may use the output of a previous tool. Give me the result in JSON array, where each element of the array is a string. Give me just the JSON array with no text before or after. Do not use any tools to generate your answer. Do not call tools directly."
+    
+  has_code_interpreter = any(item['name'] == 'code_interpreter' for item in tools)
+  if has_code_interpreter:
+      prompt += """When suggesting prompts involving code_interpreter, be aware of its limitations: 
+      <limitations>
+      - code_interpreter cannot access, see or run other tools. None of the tools listed are available to code_interpreter.
+      - code_interpreter cannot access stdin 
+      - code_interpreter cannot ask input from the user or any external source
+      - code_interpreter cannot run indefinitely.
+      </limitations>
+      Remember that code_interpreter can install libraries from pypi."""
+      
+  client = Anthropic()
+  
+  response = client.messages.create(
+    model="claude-3-sonnet-20240229",
     max_tokens=1024,
     messages=[{"role": "user", "content": prompt}],
     tools=tools,
-    response_format={"type": "json_object"}
   )
   
   try:
-    answer = response.choices[0].message.content
-    json_answer = json.loads(answer)
-    return json_answer.get("prompts")
+    answer = response.content[0].text
+    return json.loads(answer)
   except Exception as e:
-    print(e)
     return []
