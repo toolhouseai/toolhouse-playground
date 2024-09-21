@@ -7,8 +7,15 @@ from tools import tool_prompts
 from components import sidebar, hero
 import dotenv
 
-th = Toolhouse(access_token=st.query_params["th_token"], provider=Provider.ANTHROPIC)
-th.set_base_url("https://g6dywws9a0.execute-api.us-west-2.amazonaws.com/v1")
+try:
+    th = Toolhouse(access_token=st.query_params["th_token"], provider=Provider.ANTHROPIC)
+    th.set_base_url("https://g6dywws9a0.execute-api.us-west-2.amazonaws.com/v1")
+except:
+    st.error(
+        "You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
+        "Please go back to your Toolhouse and click Playground to start a new session.")
+    st.stop()
+
 dotenv.load_dotenv()
 
 st.set_page_config(
@@ -61,14 +68,10 @@ llm = llms.get(llm_choice)
 st.session_state.provider = llm.get("provider")
 model = llm.get("model")
 
-try:
-    timezone = st.query_params["tz"] or 0
+timezone = st.query_params["tz"] or 0
 
-    th.set_metadata("id", st.query_params["th_token"])
-    th.set_metadata("timezone", timezone)
-except Exception as e:
-    st.error(f"Invalid API key: {str(e)}")
-    st.stop()
+th.set_metadata("id", st.query_params["th_token"])
+th.set_metadata("timezone", timezone)
     
 def hide_hero():
     st.session_state.hide_hero = True
