@@ -20,6 +20,12 @@ if "stream" not in st.session_state:
 
 if "provider" not in st.session_state:
     st.session_state.provider = llms.get(next(iter(llms))).get("provider")
+    
+if "bundle" not in st.session_state:
+    st.session_state.bundle = "default"
+
+if "previous_bundle" not in st.session_state:
+    st.session_state.previous_bundle = "default"
 
 from st_utils import print_messages, append_and_print
 import dotenv
@@ -36,16 +42,12 @@ with st.sidebar:
         llm_choice = st.selectbox("Model", tuple(llms.keys()))
         st.session_state.stream = st.toggle("Stream responses", True)
         user = st.text_input("User", "daniele")
-        bundle = st.text_input("Bundle", "default")
+        st.session_state.bundle = st.text_input("Bundle", "default")
 
     t = Toolhouse(provider="anthropic")
 
     try:
-        # start = time.time()
-        available_tools = t.get_tools(bundle=bundle)
-        # end = time.time()
-        # duration = end - start
-        # st.markdown(f"## Duration: {duration} s")
+        available_tools = t.get_tools(bundle=st.session_state.bundle)
     except NotFoundException:
         available_tools = None
 
@@ -73,6 +75,15 @@ model = llm.get("model")
 
 th = Toolhouse(provider=llm.get("provider"))
 
+if "tools" not in st.session_state:
+    st.session_state.tools = th.get_tools(bundle=st.session_state.bundle)
+    
+
+if st.session_state.bundle != st.session_state.previous_bundle:
+    st.session_state.tools = th.get_tools(bundle=st.session_state.bundle)
+    print(st.session_state.tools)
+    st.session_state.previous_bundle = st.session_state.bundle
+
 th.set_metadata("timezone", -7)
 if user:
     th.set_metadata("id", user)
@@ -89,7 +100,7 @@ if prompt := st.chat_input("What is up?"):
         model=model,
         messages=st.session_state.messages,
         stream=st.session_state.stream,
-        tools=th.get_tools(bundle=bundle),
+        tools=st.session_state.tools,
         max_tokens=4096,
         temperature=0.1,
     ) as response:
@@ -105,7 +116,7 @@ if prompt := st.chat_input("What is up?"):
                 model=model,
                 messages=st.session_state.messages,
                 stream=st.session_state.stream,
-                tools=th.get_tools(bundle=bundle),
+                tools=st.session_state.tools,
                 max_tokens=4096,
                 temperature=0.1,
             ) as after_tool_response:
