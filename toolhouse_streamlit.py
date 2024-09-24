@@ -2,7 +2,6 @@ import streamlit as st
 from toolhouse import Toolhouse
 from llms import llms, llm_call
 from http_exceptions.client_exceptions import NotFoundException
-import time
 
 st.set_page_config(
     page_title="Toolhouse Playground",
