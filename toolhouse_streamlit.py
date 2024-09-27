@@ -35,7 +35,7 @@ st.logo("logo.svg", link="https://toolhouse.ai")
 
 with st.sidebar:
     st.title("💬 Playground")
-    st.markdown("#### Get your $150: join.toolhouse.ai")
+    st.markdown("#### Get $150 credits: join.toolhouse.ai")
     image = st.image("join.png")
     with st.expander("Advanced"):
         llm_choice = st.selectbox("Model", tuple(llms.keys()))

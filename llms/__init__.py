@@ -22,6 +22,10 @@ llms = {
         "provider": "anthropic", 
         "model": "claude-3-5-sonnet-20240620",
     },
+    "Llama 3.2 90b (GroqCloud)": { 
+        "provider": "openai", 
+        "model": "llama-3.2-90b-text-preview", 
+    },
     "Llama 3 70b-8192 (GroqCloud)": { 
         "provider": "openai", 
         "model": "llama3-groq-70b-8192-tool-use-preview", 
