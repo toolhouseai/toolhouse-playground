@@ -9,7 +9,6 @@ import dotenv
 
 try:
     th = Toolhouse(access_token=st.query_params["th_token"], provider=Provider.ANTHROPIC)
-    th.set_base_url("https://g6dywws9a0.execute-api.us-west-2.amazonaws.com/v1")
 except:
     st.error(
         "You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
