@@ -58,7 +58,7 @@ if "hide_hero" not in st.session_state:
 if "suggestions" not in st.session_state:
     st.session_state.suggestions = None
 
-st.logo("logo.svg", link="https://toolhouse.ai")
+st.logo("logo.svg", link="https://app.toolhouse.ai")
 
 # Set some default values
 llm_choice = "Claude 3.5 Sonnet"
