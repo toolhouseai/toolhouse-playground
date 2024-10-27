@@ -34,6 +34,7 @@ dotenv.load_dotenv()
 st.logo("logo.svg", link="https://toolhouse.ai")
 
 with st.sidebar:
+    t = Toolhouse(provider=st.session_state.provider)
     st.title("💬 Playground")
     st.markdown("#### Get $150 credits: join.toolhouse.ai")
     image = st.image("join.png")
@@ -42,8 +43,7 @@ with st.sidebar:
         st.session_state.stream = st.toggle("Stream responses", True)
         user = st.text_input("User", "daniele")
         st.session_state.bundle = st.text_input("Bundle", "default")
-
-    t = Toolhouse(provider="anthropic")
+        st.session_state.tools = t.get_tools(bundle=st.session_state.bundle)
 
     try:
         available_tools = t.get_tools(bundle=st.session_state.bundle)
@@ -59,6 +59,8 @@ with st.sidebar:
         st.subheader("Installed tools")
         for tool in available_tools:
             tool_name = tool.get("name")
+            if st.session_state.provider != "anthropic":
+                tool_name = tool["function"].get("name")
             st.page_link(f"https://app.toolhouse.ai/store/{tool_name}", label=tool_name)
 
         st.caption(
@@ -74,13 +76,8 @@ model = llm.get("model")
 
 th = Toolhouse(provider=llm.get("provider"))
 
-if "tools" not in st.session_state:
-    st.session_state.tools = th.get_tools(bundle=st.session_state.bundle)
-    
-
 if st.session_state.bundle != st.session_state.previous_bundle:
     st.session_state.tools = th.get_tools(bundle=st.session_state.bundle)
-    print(st.session_state.tools)
     st.session_state.previous_bundle = st.session_state.bundle
 
 th.set_metadata("timezone", -7)
