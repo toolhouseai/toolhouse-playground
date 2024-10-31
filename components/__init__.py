@@ -5,10 +5,7 @@ def sidebar():
     with st.sidebar:
         st.title("💬 Playground")
         st.markdown("""
-        **Want to earn more credits?**
-
-        
-        ✨ [Join our Discord](https://discord.toolhouse.ai) and become a Toolhouse Partner
+        ✨ [Join our Discord Community](https://discord.toolhouse.ai)
         """)
             
         if not st.session_state.available_tools:
@@ -18,6 +15,7 @@ def sidebar():
             )
         else:
             st.subheader("Installed tools")
+            st.caption("Click on a tool to see its details.")
             for tool in st.session_state.available_tools:
                 tool_name = tool.get("name")
                 st.page_link(f"https://app.toolhouse.ai/store/{tool_name}", label=tool_name)
@@ -29,6 +27,9 @@ def sidebar():
 def hide_hero_and_call(prompt):
     st.session_state.hide_hero = True
     st.session_state.prompt = prompt
+
+def get_suggestions():
+    st.session_state.suggestion_generation_in_progress = True
 
 def hero():
     tool_id = st.query_params.get("tool_id")
@@ -43,13 +44,16 @@ def hero():
             "You can use the Playground to test out a tool, or to see how multiple tools work together."
         )
         
-        if st.session_state.suggestions is None:
-            st.session_state.suggestions = generate_prompt_suggestions(st.session_state.available_tools)
-        
-        st.write("Here are some suggestions to get you started:")
-        for i, suggestion in enumerate(st.session_state["suggestions"]):
-            st.markdown(f"*{suggestion}*")
-            st.button("Try this prompt", key=f"button-{i}", on_click=hide_hero_and_call, args=[suggestion])
+        st.button("Try some suggestions", on_click=get_suggestions, disabled=(st.session_state.suggestions is not None or st.session_state.suggestion_generation_in_progress is True))
+
+        if st.session_state.suggestion_generation_in_progress is True:
+            with st.spinner("Generating suggestions based on your tools…"):
+                st.session_state.suggestions = generate_prompt_suggestions(st.session_state.available_tools)
+                st.session_state.suggestion_generation_in_progress = False
+                    
+            for i, suggestion in enumerate(st.session_state["suggestions"]):
+                st.markdown(f"*{suggestion}*")
+                st.button("Try this prompt", key=f"button-{i}", on_click=hide_hero_and_call, args=[suggestion])
     else:
         if not tool:
             st.markdown(f"The Playground cannot load the requested tool: `{st.query_params.get("tool_id")}`. Ensure the name is correct.")

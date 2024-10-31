@@ -62,6 +62,9 @@ if "hide_hero" not in st.session_state:
     
 if "suggestions" not in st.session_state:
     st.session_state.suggestions = None
+    
+if "suggestion_generation_in_progress" not in st.session_state:
+    st.session_state.suggestion_generation_in_progress = False
 
 st.logo("logo.svg", link="https://app.toolhouse.ai")
 
