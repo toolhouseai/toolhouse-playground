@@ -5,17 +5,22 @@ from http_exceptions.client_exceptions import NotFoundException
 from st_utils import print_messages, append_and_print
 from tools import tool_prompts
 from components import sidebar, hero
+from decrypt import decrypt
 import dotenv
 
+dotenv.load_dotenv()
+config = decrypt(st.query_params["token"])
+
 try:
-    th = Toolhouse(access_token=st.query_params["th_token"], provider=Provider.ANTHROPIC)
+    th = Toolhouse(
+        access_token=config.get("th_token"), 
+        provider=Provider.ANTHROPIC)
 except:
     st.error(
         "You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
         "Please go back to your Toolhouse and click Playground to start a new session.")
     st.stop()
 
-dotenv.load_dotenv()
 
 st.set_page_config(
     page_title="Toolhouse Playground",
@@ -24,11 +29,11 @@ st.set_page_config(
 
 st.markdown("<style>@import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap');</style>", unsafe_allow_html=True)
 st.markdown('<style>body, div, h1, h2, h3, h4, h4, h5, button,input,optgroup,select,textarea {font-family: "Rethink Sans" !important}</style>', unsafe_allow_html=True)
-tool_id = st.query_params.get("tool_id")
+tool_id = config.get("tool_id")
 tool = tool_prompts.get(tool_id)
 
 # Check for Toolhouse API key
-if not st.query_params.get("th_token"):
+if not config.get("th_token"):
     st.markdown("# Your Toolhouse API Key is missing")
     st.markdown("To use the Playground, you need to provide a Toolhouse API Key.")
     st.markdown("Get your API Key from the [Toolhouse dashboard](https://app.toolhouse.ai/settings/api-keys).")
@@ -67,9 +72,9 @@ llm = llms.get(llm_choice)
 st.session_state.provider = llm.get("provider")
 model = llm.get("model")
 
-timezone = st.query_params["tz"] or 0
+timezone = config.get("tz") or 0
 
-th.set_metadata("id", st.query_params["th_token"])
+th.set_metadata("id", config.get("th_token"))
 th.set_metadata("timezone", timezone)
     
 def hide_hero():
