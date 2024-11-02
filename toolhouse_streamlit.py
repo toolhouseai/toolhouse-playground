@@ -9,9 +9,10 @@ from decrypt import decrypt
 import dotenv
 
 dotenv.load_dotenv()
-config = decrypt(st.query_params["token"])
 
 try:
+    token = st.query_params.get("token")
+    config = decrypt(token)
     th = Toolhouse(
         access_token=config.get("th_token"), 
         provider=Provider.ANTHROPIC)
