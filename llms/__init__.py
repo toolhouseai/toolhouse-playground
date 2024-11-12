@@ -78,6 +78,10 @@ llms = {
         "provider": "openai", 
         "model": "mistralai/Mixtral-8x7B-Instruct-v0.1", 
     },
+    "Google Gemini": { 
+        "provider": "openai", 
+        "model": "google/gemini-1.5-pro", 
+    },
 }
 
 class LLMContextManager(object):
@@ -166,6 +170,13 @@ def call_together(**kwargs):
   client = OpenAI(
     api_key=os.environ.get('TOGETHER_API_KEY'),
     base_url="https://api.together.xyz/v1",
+  )
+  return client.chat.completions.create(**kwargs)
+
+def call_gemini(**kwargs):
+  client = OpenAI(
+    api_key=os.environ.get('GEMINI_API_KEY'),
+    base_url = f'https://{os.environ.get('GEMINI_LOCATION')}-aiplatform.googleapis.com/v1beta1/projects/{os.environ.get('GEMINI_PROJECTID')}/locations/{os.environ.get('GEMINI_LOCATION')}/endpoints/openapi',
   )
       
   return client.chat.completions.create(**kwargs)
