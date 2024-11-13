@@ -24,6 +24,13 @@ def sidebar():
                 "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store)."
             )
 
+@st.dialog("You ran out of execs", width="large")
+def top_up():
+    url = "https://app.toolhouse.ai/billing"
+    st.write("You ran out of Toolhouse execs!")
+    st.write(f"You can top up your balance in the [Billing page]({url}).")
+    st.link_button("Top up your balance", url, type="primary")
+
 def hide_hero_and_call(prompt):
     st.session_state.hide_hero = True
     st.session_state.prompt = prompt

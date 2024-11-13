@@ -1,10 +1,11 @@
 import streamlit as st
 from toolhouse import Toolhouse, Provider
+from http_exceptions.client_exceptions import PaymentRequiredException
 from llms import llms, llm_call
 from http_exceptions.client_exceptions import NotFoundException
 from st_utils import print_messages, append_and_print
 from tools import tool_prompts
-from components import sidebar, hero
+from components import sidebar, hero, top_up
 from decrypt import decrypt
 import dotenv
 
@@ -89,35 +90,38 @@ def call_llm(prompt):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    with llm_call(
-        provider=llm_choice,
-        model=model,
-        messages=st.session_state.messages,
-        stream=st.session_state.stream,
-        tools=st.session_state.available_tools,
-        max_tokens=4096,
-        temperature=0.1,
-    ) as response:
-        completion = append_and_print(response)
-        tool_results = th.run_tools(
-            completion, append=False
-        )
+    try:
+        with llm_call(
+            provider=llm_choice,
+            model=model,
+            messages=st.session_state.messages,
+            stream=st.session_state.stream,
+            tools=st.session_state.available_tools,
+            max_tokens=4096,
+            temperature=0.1,
+        ) as response:
+            completion = append_and_print(response)
+            tool_results = th.run_tools(
+                completion, append=False
+            )
 
-        while tool_results:
-            st.session_state.messages += tool_results
-            with llm_call(
-                provider=llm_choice,
-                model=model,
-                messages=st.session_state.messages,
-                stream=st.session_state.stream,
-                tools=st.session_state.available_tools,
-                max_tokens=4096,
-                temperature=0.1,
-            ) as after_tool_response:
-                after_tool_response = append_and_print(after_tool_response)
-                tool_results = th.run_tools(
-                    after_tool_response, append=False
-                )
+            while tool_results:
+                st.session_state.messages += tool_results
+                with llm_call(
+                    provider=llm_choice,
+                    model=model,
+                    messages=st.session_state.messages,
+                    stream=st.session_state.stream,
+                    tools=st.session_state.available_tools,
+                    max_tokens=4096,
+                    temperature=0.1,
+                ) as after_tool_response:
+                    after_tool_response = append_and_print(after_tool_response)
+                    tool_results = th.run_tools(
+                        after_tool_response, append=False
+                    )
+    except PaymentRequiredException:
+        top_up()
 
 sidebar()
 hero()
