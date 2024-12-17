@@ -1,5 +1,13 @@
 import streamlit as st
+import requests
 from tools import tool_prompts, generate_prompt_suggestions
+
+tool_req = requests.get("https://api.toolhouse.ai/me/tools")
+tool_list = tool_req.json()
+
+
+def get_tool(tool_id: str):
+    return next((obj for obj in tool_list if obj.get("id") == tool_id), None)
 
 
 def sidebar():
@@ -20,9 +28,14 @@ def sidebar():
             st.subheader("Installed tools")
             st.caption("Click on a tool to see its details.")
             for tool in st.session_state.available_tools:
-                tool_name = tool.get("name")
+                tool_id = tool.get("name")
+                if t := get_tool(tool_id):
+                    tool_name = t.get("title")
+                else:
+                    tool_name = tool_id
+
                 st.page_link(
-                    f"https://app.toolhouse.ai/store/{tool_name}", label=tool_name
+                    f"https://app.toolhouse.ai/store/{tool_id}", label=tool_name
                 )
 
             st.caption(
