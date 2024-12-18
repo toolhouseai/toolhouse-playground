@@ -1,9 +1,18 @@
 import streamlit as st
 import requests
 from tools import tool_prompts, generate_prompt_suggestions
+from history import get_all_chats
 
 tool_req = requests.get("https://api.toolhouse.ai/me/tools")
 tool_list = tool_req.json()
+# base_url = "https://toolhouseplayground.streamlit.app/"
+base_url = "http://localhost:8501/"
+
+
+@st.dialog("Share this chat")
+def share_dialog():
+    share_url = f"{base_url}?token={st.query_params.get("token")}&chat={st.query_params.get("chat")}"
+    st.text_input("Here's the link to this chat.", value=share_url)
 
 
 def get_tool(tool_id: str):
@@ -13,6 +22,24 @@ def get_tool(tool_id: str):
 def sidebar():
     with st.sidebar:
         st.title("💬 Playground")
+        left, right = st.columns(2)
+        left.link_button(
+            "",
+            url=f"/?token={st.query_params.get("token")}",
+            icon=":material/library_add:",
+            help="New chat",
+            use_container_width=True,
+        )
+
+        disabled = "chat" not in st.session_state or st.session_state.chat is None
+        if right.button(
+            "",
+            icon=":material/ios_share:",
+            help="Share this chat",
+            disabled=disabled,
+            use_container_width=True,
+        ):
+            share_dialog()
         st.markdown(
             """
         ✨ [Join our Discord Community](https://discord.toolhouse.ai)
@@ -25,22 +52,29 @@ def sidebar():
                 "Go to the [Tool Store](https://app.toolhouse.ai/store) to install your tools."
             )
         else:
-            st.subheader("Installed tools")
-            st.caption("Click on a tool to see its details.")
-            for tool in st.session_state.available_tools:
-                tool_id = tool.get("name")
-                if t := get_tool(tool_id):
-                    tool_name = t.get("title")
-                else:
-                    tool_name = tool_id
+            with st.expander("Installed tools"):
+                st.caption("Click on a tool to see its details.")
+                for tool in st.session_state.available_tools:
+                    tool_id = tool.get("name")
+                    if t := get_tool(tool_id):
+                        tool_name = t.get("title")
+                    else:
+                        tool_name = tool_id
 
-                st.page_link(
-                    f"https://app.toolhouse.ai/store/{tool_id}", label=tool_name
+                    st.page_link(
+                        f"https://app.toolhouse.ai/store/{tool_id}", label=tool_name
+                    )
+
+                st.caption(
+                    "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store)."
                 )
 
-            st.caption(
-                "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store)."
-            )
+        if chat_list := get_all_chats(st.session_state.api_key):
+            for chat in chat_list:
+                st.page_link(
+                    f"{base_url}?token={st.query_params.get("token")}&chat={chat.get("id")}",
+                    label=chat.get("title"),
+                )
 
 
 @st.dialog("You ran out of execs", width="large")
@@ -61,6 +95,9 @@ def get_suggestions():
 
 
 def hero():
+    if st.session_state.hide_hero:
+        return
+
     tool_id = st.query_params.get("tool_id")
     tool = tool_prompts.get(tool_id)
 
