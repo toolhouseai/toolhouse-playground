@@ -7,20 +7,25 @@ from st_utils import print_messages, append_and_print
 from tools import tool_prompts
 from components import sidebar, hero, top_up
 from decrypt import decrypt
+from history import get_chat_history, upsert_chat_history
 import dotenv
+import json
 
 dotenv.load_dotenv()
 
 try:
     token = st.query_params.get("token")
     config = decrypt(token)
-    th = Toolhouse(
-        access_token=config.get("th_token"), 
-        provider=Provider.ANTHROPIC)
+    api_key = config.get("th_token")
+    api_key = "th-JRf0F0XORSkOsyg4jPkY4ras74lCsvB8ZKuyPewcwuw"
+    st.session_state.api_key = api_key
+    th = Toolhouse(access_token=api_key, provider=Provider.ANTHROPIC)
+    th.set_base_url("https://api-staging.toolhouse.ai/v1")
 except:
     st.error(
         "You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
-        "Please go back to your Toolhouse and click Playground to start a new session.")
+        "Please go back to your Toolhouse and click Playground to start a new session."
+    )
     st.stop()
 
 
@@ -29,16 +34,24 @@ st.set_page_config(
     page_icon="https://app.toolhouse.ai/icons/favicon.ico",
 )
 
-st.markdown("<style>@import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap');</style>", unsafe_allow_html=True)
-st.markdown('<style>body, div, h1, h2, h3, h4, h4, h5, button,input,optgroup,select,textarea {font-family: "Rethink Sans" !important}</style>', unsafe_allow_html=True)
+st.markdown(
+    "<style>@import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap');</style>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<style>body, div, h1, h2, h3, h4, h4, h5, button,input,optgroup,select,textarea {font-family: "Rethink Sans" !important}</style>',
+    unsafe_allow_html=True,
+)
 tool_id = config.get("tool_id")
 tool = tool_prompts.get(tool_id)
 
 # Check for Toolhouse API key
-if not config.get("th_token"):
+if not api_key:
     st.markdown("# Your Toolhouse API Key is missing")
     st.markdown("To use the Playground, you need to provide a Toolhouse API Key.")
-    st.markdown("Get your API Key from the [Toolhouse dashboard](https://app.toolhouse.ai/settings/api-keys).")
+    st.markdown(
+        "Get your API Key from the [Toolhouse dashboard](https://app.toolhouse.ai/settings/api-keys)."
+    )
     st.stop()
 
 if "messages" not in st.session_state:
@@ -61,12 +74,21 @@ if "available_tools" not in st.session_state:
 
 if "hide_hero" not in st.session_state:
     st.session_state.hide_hero = False
-    
+
+if st.query_params.get("chat"):
+    st.session_state.hide_hero = True
+
 if "suggestions" not in st.session_state:
     st.session_state.suggestions = None
-    
+
 if "suggestion_generation_in_progress" not in st.session_state:
     st.session_state.suggestion_generation_in_progress = False
+
+if "ready" not in st.session_state:
+    st.session_state.ready = False
+
+if "chat_id" not in st.session_state:
+    st.session_state.chat_id = None
 
 st.logo("logo.svg", link="https://app.toolhouse.ai")
 
@@ -79,14 +101,17 @@ model = llm.get("model")
 
 timezone = config.get("tz") or 0
 
-th.set_metadata("id", config.get("th_token"))
+th.set_metadata("id", api_key)
 th.set_metadata("timezone", timezone)
-    
+
+
 def hide_hero():
     st.session_state.hide_hero = True
 
+
 def call_llm(prompt):
     st.session_state.messages.append({"role": "user", "content": prompt})
+
     with st.chat_message("user"):
         st.markdown(prompt)
 
@@ -101,9 +126,7 @@ def call_llm(prompt):
             temperature=0.1,
         ) as response:
             completion = append_and_print(response)
-            tool_results = th.run_tools(
-                completion, append=False
-            )
+            tool_results = th.run_tools(completion, append=False)
 
             while tool_results:
                 st.session_state.messages += tool_results
@@ -117,14 +140,39 @@ def call_llm(prompt):
                     temperature=0.1,
                 ) as after_tool_response:
                     after_tool_response = append_and_print(after_tool_response)
-                    tool_results = th.run_tools(
-                        after_tool_response, append=False
-                    )
+                    tool_results = th.run_tools(after_tool_response, append=False)
     except PaymentRequiredException:
         top_up()
 
+
 sidebar()
 hero()
+
+
+if (chat_id := st.query_params.get("chat")) and st.session_state.ready == False:
+    st.session_state.chat_id = chat_id
+    st.session_state.ready = True
+    try:
+        if not (messages := get_chat_history(chat_id, api_key)):
+            raise ValueError
+
+        st.session_state.messages = messages
+    except Exception as e:
+        print(e)
+        st.error(
+            "This chat does not exist or you don't have permissions to see it.",
+            icon=":material/block:",
+        )
+
+        st.link_button("Start a new chat", url=f"/?token={token}", type="primary")
+
+        st.page_link(
+            label="Back to Toolhouse",
+            page=f"https://app.toolhouse.ai",
+            icon=":material/arrow_back:",
+        )
+        st.stop()
+
 print_messages(st.session_state.messages, st.session_state.provider)
 
 if st.session_state.prompt is not None:
@@ -136,4 +184,11 @@ if prompt := st.chat_input("What is up?", on_submit=hide_hero):
     st.session_state.prompt = prompt
     call_llm(prompt)
     st.session_state.prompt = None
-    
+
+    chat_id = upsert_chat_history(
+        st.session_state.chat_id, st.session_state.messages, api_key
+    )
+
+    if chat_id and chat_id != st.session_state.chat_id:
+        st.session_state.chat_id = chat_id
+        st.rerun()
