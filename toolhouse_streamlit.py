@@ -1,45 +1,138 @@
-import streamlit as st
-from toolhouse import Toolhouse, Provider
-from http_exceptions.client_exceptions import PaymentRequiredException
-from llms import llms, llm_call
-from http_exceptions.client_exceptions import NotFoundException
-from st_utils import print_messages, append_and_print
-from tools import tool_prompts
-from components import sidebar, hero, top_up
-from decrypt import decrypt
+import traceback
 import dotenv
 
 dotenv.load_dotenv()
 
-try:
-    token = st.query_params.get("token")
-    config = decrypt(token)
-    th = Toolhouse(
-        access_token=config.get("th_token"), 
-        provider=Provider.ANTHROPIC)
-except:
-    st.error(
-        "You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
-        "Please go back to your Toolhouse and click Playground to start a new session.")
-    st.stop()
-
+import streamlit as st
+import streamlit.components.v1 as components
+from toolhouse import Toolhouse, Provider
+from datetime import datetime, timedelta
+import extra_streamlit_components as stx
+from http_exceptions.client_exceptions import PaymentRequiredException
+from llms import llms, llm_call
+from http_exceptions.client_exceptions import NotFoundException
+from st_utils import print_messages, append_and_print
+from components import sidebar, hero, top_up, signup_hero
+from decrypt import decrypt
+from api.history import get_chat_history, upsert_chat_history
+from api.api_key import get_api_key
+from st_utils.url import build_url
+import os
 
 st.set_page_config(
     page_title="Toolhouse Playground",
     page_icon="https://app.toolhouse.ai/icons/favicon.ico",
 )
+cookie_manager = stx.CookieManager()
 
-st.markdown("<style>@import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap');</style>", unsafe_allow_html=True)
-st.markdown('<style>body, div, h1, h2, h3, h4, h4, h5, button,input,optgroup,select,textarea {font-family: "Rethink Sans" !important}</style>', unsafe_allow_html=True)
-tool_id = config.get("tool_id")
-tool = tool_prompts.get(tool_id)
+if "api_key" not in st.session_state:
+    st.session_state.api_key = None
+
+if "jwt" not in st.session_state:
+    st.session_state.jwt = None
+
+try:
+    if st.query_params.get("token"):
+        token = st.query_params.get("token")
+        jwt = decrypt(token)
+        api_key = get_api_key(jwt)
+
+        if api_key:
+            session_length = datetime.now() + timedelta(days=364)
+            cookie_manager.set("token", jwt, expires_at=session_length)
+            st.session_state.api_key = api_key
+            st.session_state.jwt = jwt
+    elif cookie_manager.get("token"):
+        jwt = cookie_manager.get("token")
+        api_key = get_api_key(jwt)
+
+        if api_key:
+            session_length = datetime.now() + timedelta(days=364)
+            cookie_manager.set("token", jwt, expires_at=session_length)
+            st.session_state.api_key = api_key
+            st.session_state.jwt = jwt
+    else:
+        raise ValueError()
+
+    th = Toolhouse(access_token=st.session_state.api_key, provider=Provider.ANTHROPIC)
+    th.set_base_url(os.environ.get("TOOLHOUSE_BASE_URL"))
+except Exception as e:
+    signup_hero()
+
+
+st.markdown(
+    "<style>@import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap');</style>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    """<style>
+    body, div, h1, h2, h3, h4, h4, h5, button,input,optgroup,select,textarea {font-family: "Rethink Sans" !important}
+    .th-page-link, 
+    .th-page-link:visited,
+    .th-page-link:hover {
+        color: rgb(49, 51, 63); 
+        text-decoration: none;
+        width: 288px;
+        display: flex;
+        flex-direction: row;
+        -webkit-box-align: center;
+        align-items: center;
+        -webkit-box-pack: start;
+        justify-content: flex-start;
+        gap: 0.5rem;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        margin-top: -0.375rem; 
+        margin-bottom: -0.375rem; 
+        line-height: 2;
+    }
+    
+    .th-page-link.th-active,
+    .th-page-link:active,
+    .th-page-link:hover {
+        background-color: rgba(151, 166, 195, 0.15);
+    }
+    
+    .th-share-url {
+        background: rgb(248, 249, 251);
+        border-radius: 0.5rem;
+        color: rgb(49, 51, 63);
+        font-size: 14px;
+        font-family: "Source Code Pro", monospace;
+        display: block;
+        margin: 0px;
+        overflow: auto;
+        padding: 1rem 2.3rem 1rem 1rem;
+    }
+    
+    div.stToastContainer {z-index: 2000000;}
+    </style>""",
+    unsafe_allow_html=True,
+)
+
+components.html(
+    """
+<script>
+window.parent.eval(`
+    document.addEventListener('click', function(event) {
+        let target = event.target;
+        while (target && target.tagName !== 'A') {
+            target = target.parentNode;
+        }
+        if (target && target.tagName === 'A') {
+            event.preventDefault();
+            window.location.href = target.href;
+        }
+    });
+`);
+</script>""",
+    height=0,
+)
+
 
 # Check for Toolhouse API key
-if not config.get("th_token"):
-    st.markdown("# Your Toolhouse API Key is missing")
-    st.markdown("To use the Playground, you need to provide a Toolhouse API Key.")
-    st.markdown("Get your API Key from the [Toolhouse dashboard](https://app.toolhouse.ai/settings/api-keys).")
-    st.stop()
+if not api_key:
+    signup_hero()
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -61,12 +154,24 @@ if "available_tools" not in st.session_state:
 
 if "hide_hero" not in st.session_state:
     st.session_state.hide_hero = False
-    
+
+if st.query_params.get("chat"):
+    st.session_state.hide_hero = True
+
 if "suggestions" not in st.session_state:
     st.session_state.suggestions = None
-    
+
 if "suggestion_generation_in_progress" not in st.session_state:
     st.session_state.suggestion_generation_in_progress = False
+
+if "ready" not in st.session_state:
+    st.session_state.ready = False
+
+if "chat_id" not in st.session_state:
+    st.session_state.chat_id = None
+
+if st.query_params.get("chat"):
+    st.session_state.chat_id = st.query_params.get("chat")
 
 st.logo("logo.svg", link="https://app.toolhouse.ai")
 
@@ -77,16 +182,16 @@ llm = llms.get(llm_choice)
 st.session_state.provider = llm.get("provider")
 model = llm.get("model")
 
-timezone = config.get("tz") or 0
+th.set_metadata("id", api_key)
 
-th.set_metadata("id", config.get("th_token"))
-th.set_metadata("timezone", timezone)
-    
+
 def hide_hero():
     st.session_state.hide_hero = True
 
+
 def call_llm(prompt):
     st.session_state.messages.append({"role": "user", "content": prompt})
+
     with st.chat_message("user"):
         st.markdown(prompt)
 
@@ -101,9 +206,7 @@ def call_llm(prompt):
             temperature=0.1,
         ) as response:
             completion = append_and_print(response)
-            tool_results = th.run_tools(
-                completion, append=False
-            )
+            tool_results = th.run_tools(completion, append=False)
 
             while tool_results:
                 st.session_state.messages += tool_results
@@ -117,14 +220,39 @@ def call_llm(prompt):
                     temperature=0.1,
                 ) as after_tool_response:
                     after_tool_response = append_and_print(after_tool_response)
-                    tool_results = th.run_tools(
-                        after_tool_response, append=False
-                    )
+                    tool_results = th.run_tools(after_tool_response, append=False)
     except PaymentRequiredException:
         top_up()
 
-sidebar()
+
+sidebar(cookie_manager.get("token"))
 hero()
+
+
+if (chat_id := st.query_params.get("chat")) and st.session_state.ready == False:
+    st.session_state.chat_id = chat_id
+    st.session_state.ready = True
+    try:
+        if not (messages := get_chat_history(chat_id, cookie_manager.get("token"))):
+            raise ValueError
+
+        st.session_state.messages = messages
+    except Exception as e:
+        print(e)
+        st.error(
+            "This chat does not exist or you don't have permissions to see it.",
+            icon=":material/block:",
+        )
+
+        st.link_button("Start a new chat", url=f"/?token={token}", type="primary")
+
+        st.page_link(
+            label="Back to Toolhouse",
+            page=f"https://app.toolhouse.ai",
+            icon=":material/arrow_back:",
+        )
+        st.stop()
+
 print_messages(st.session_state.messages, st.session_state.provider)
 
 if st.session_state.prompt is not None:
@@ -132,8 +260,50 @@ if st.session_state.prompt is not None:
     call_llm(st.session_state.prompt)
     st.session_state.prompt = None
 
-if prompt := st.chat_input("What is up?", on_submit=hide_hero):
-    st.session_state.prompt = prompt
-    call_llm(prompt)
-    st.session_state.prompt = None
-    
+if "api_key" not in st.session_state or st.session_state.api_key is None:
+    with st.container(border=True, key="sign-up-key"):
+        st.markdown("### Build your agents for free")
+        st.markdown(
+            "Talk to the best AI models and give superpowers to your agents with just three lines of code."
+        )
+
+        st.link_button(
+            "Sign up **for free**", type="primary", url="https://app.toolhouse.ai"
+        )
+        st.markdown("Trusted by 1000+ companies and developers like you.")
+
+
+else:
+    if prompt := st.chat_input("What is up?", on_submit=hide_hero):
+        st.session_state.prompt = prompt
+        call_llm(prompt)
+        st.session_state.prompt = None
+
+        chat = upsert_chat_history(
+            st.session_state.chat_id,
+            st.session_state.messages,
+            st.session_state.jwt,
+        )
+
+        chat_id = chat.get("id")
+        if st.session_state.chat_id is None:
+            components.html(
+                f"""<script>
+                window.parent.eval(`
+                    const environment = '{os.environ.get("ENVIRONMENT")}';
+                    const url = new URL(window.location.href);
+                    const chatId = '{chat_id}';
+                    if (environment === 'development') {{
+                        url.searchParams.set('chat', chatId);
+                    }} else {{
+                        url.pathName = '/c/' + chatId;
+                    }}
+                    
+                    window.history.pushState({{}}, null, url);
+                `);
+                </script>"""
+            )
+
+        if chat_id and chat_id != st.session_state.chat_id:
+            st.session_state.chat_id = chat_id
+            st.rerun()

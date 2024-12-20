@@ -1,46 +1,77 @@
 import streamlit as st
 import requests
+import pyperclip
 from tools import tool_prompts, generate_prompt_suggestions
+from api.history import get_all_chats
+from st_utils.url import build_url
+import os
 
 tool_req = requests.get("https://api.toolhouse.ai/me/tools")
 tool_list = tool_req.json()
+base_url = os.environ.get("PLAYGROUND_BASE_URL")
+
+
+@st.dialog("Share this chat")
+def share_dialog():
+    st.markdown("You can share this chat with others by sending them this link.")
+    st.markdown(
+        "**Important:** People can see the entire chat history, but they won't be able to use your execution credits."
+    )
+    url = build_url(st.session_state.chat_id)
+    left, right = st.columns([5, 1], vertical_alignment="center")
+    with left:
+        st.html(f'<pre class="th-share-url">{url}</pre>')
+    with right:
+        if st.button(
+            "",
+            type="tertiary",
+            icon=":material/content_copy:",
+            use_container_width=True,
+        ):
+            pyperclip.copy(url)
+            st.toast("Link copied to clipboard")
 
 
 def get_tool(tool_id: str):
     return next((obj for obj in tool_list if obj.get("id") == tool_id), None)
 
 
-def sidebar():
+def sidebar(token):
     with st.sidebar:
-        st.title("💬 Playground")
+        st.title(":material/chat: Playground")
+        left, right = st.columns(2)
+        left.link_button(
+            "",
+            url=f"/",
+            icon=":material/library_add:",
+            help="New chat",
+            use_container_width=True,
+        )
+
+        disabled = "chat_id" not in st.session_state or st.session_state.chat_id is None
+        if right.button(
+            "",
+            icon=":material/ios_share:",
+            help="Share this chat",
+            disabled=disabled,
+            use_container_width=True,
+        ):
+            share_dialog()
         st.markdown(
             """
         ✨ [Join our Discord Community](https://discord.toolhouse.ai)
         """
         )
-
-        if not st.session_state.available_tools:
-            st.subheader("No tools installed")
-            st.caption(
-                "Go to the [Tool Store](https://app.toolhouse.ai/store) to install your tools."
-            )
-        else:
-            st.subheader("Installed tools")
-            st.caption("Click on a tool to see its details.")
-            for tool in st.session_state.available_tools:
-                tool_id = tool.get("name")
-                if t := get_tool(tool_id):
-                    tool_name = t.get("title")
-                else:
-                    tool_name = tool_id
-
-                st.page_link(
-                    f"https://app.toolhouse.ai/store/{tool_id}", label=tool_name
+        if chat_list := get_all_chats(token):
+            st.markdown("### Your chats")
+            for chat in chat_list:
+                active = (
+                    "th-active" if chat.get("id") == st.session_state.chat_id else ""
                 )
-
-            st.caption(
-                "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store)."
-            )
+                url = build_url(chat.get("id"))
+                st.html(
+                    f'<a href="{url}" class="th-page-link {active}" target="_self">{chat.get("title")}'
+                )
 
 
 @st.dialog("You ran out of execs", width="large")
@@ -61,11 +92,14 @@ def get_suggestions():
 
 
 def hero():
+    if st.session_state.hide_hero:
+        return
+
     tool_id = st.query_params.get("tool_id")
     tool = tool_prompts.get(tool_id)
 
     if not st.query_params.get("tool_id"):
-        with st.chat_message("user"):
+        with st.chat_message("", avatar="sparkles.svg"):
             st.markdown(
                 '<h2 style="padding:0;padding-bottom:1rem">Welcome to the Playground!</h2>',
                 unsafe_allow_html=True,
@@ -77,7 +111,7 @@ def hero():
             )
 
             st.button(
-                "Try some suggestions",
+                "I'm feeling lucky",
                 on_click=get_suggestions,
                 icon=":material/ifl:",
                 disabled=(
@@ -140,3 +174,20 @@ def hero():
                     on_click=hide_hero_and_call,
                     args=[tool.get("prompt")],
                 )
+
+
+def signup_hero():
+    st.image("logo.svg", width=200)
+    st.markdown("# You need to log into Toolhouse")
+    st.markdown(
+        "Talk to the best AI models **for free** and give superpowers to your agents with just three lines of code."
+    )
+
+    st.markdown(
+        "Get your API Key from the [Toolhouse dashboard](https://app.toolhouse.ai/settings/api-keys)."
+    )
+    st.link_button(
+        "Sign up **for free**", type="primary", url="https://app.toolhouse.ai"
+    )
+    st.markdown("Trusted by 1000+ companies and developers like you.")
+    st.stop()
