@@ -3,22 +3,12 @@ import requests
 import pyperclip
 from tools import tool_prompts, generate_prompt_suggestions
 from api.history import get_all_chats
-
+from st_utils.url import build_url
 import os
 
 tool_req = requests.get("https://api.toolhouse.ai/me/tools")
 tool_list = tool_req.json()
-base_url = os.environ.get(
-    "PLAYGROUND_BASE_URL", "https://toolhouseplayground.streamlit.app/"
-)
-
-
-def build_url(chat_id):
-    return (
-        f"{base_url}?chat={chat_id}"
-        if os.environ.get("ENVIRONMENT") == "development"
-        else f"{base_url}/c/{chat_id}"
-    )
+base_url = os.environ.get("PLAYGROUND_BASE_URL")
 
 
 @st.dialog("Share this chat")

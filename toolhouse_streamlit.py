@@ -16,6 +16,7 @@ from components import sidebar, hero, top_up
 from decrypt import decrypt
 from api.history import get_chat_history, upsert_chat_history
 from api.api_key import get_api_key
+from st_utils.url import build_url
 import os
 
 st.set_page_config(
@@ -54,7 +55,7 @@ try:
         raise ValueError()
 
     th = Toolhouse(access_token=st.session_state.api_key, provider=Provider.ANTHROPIC)
-    th.set_base_url(os.environ.get("TOOLHOUSE_BASE_URL", "https://api.toolhouse.ai/v1"))
+    th.set_base_url(os.environ.get("TOOLHOUSE_BASE_URL"))
 except Exception as e:
     st.error(
         "You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
@@ -120,7 +121,6 @@ window.parent.eval(`
     document.addEventListener('click', function(event) {
         let target = event.target;
         while (target && target.tagName !== 'A') {
-            console.log(target)
             target = target.parentNode;
         }
         if (target && target.tagName === 'A') {
@@ -269,6 +269,7 @@ if st.session_state.prompt is not None:
     call_llm(st.session_state.prompt)
     st.session_state.prompt = None
 
+
 if "api_key" not in st.session_state or st.session_state.api_key is None:
     st.markdown("#### Run this chat for free")
     st.markdown(
@@ -277,6 +278,7 @@ if "api_key" not in st.session_state or st.session_state.api_key is None:
     st.link_button(
         "Sign up for free",
         url="https://app.toolhouse.ai/sign-up",
+        type="primary",
     )
 
 else:
@@ -285,12 +287,39 @@ else:
         call_llm(prompt)
         st.session_state.prompt = None
 
-        chat_id = upsert_chat_history(
+        chat = upsert_chat_history(
             st.session_state.chat_id,
             st.session_state.messages,
             st.session_state.jwt,
         )
 
+        chat_id = chat.get("id")
+        if st.session_state.chat_id is None:
+            components.html(
+                f"""<script>
+                window.parent.eval(`
+                    const environment = '{os.environ.get("ENVIRONMENT")}';
+                    const url = new URL(window.location.href);
+                    const chatId = '{chat_id}';
+                    if (environment === 'development') {{
+                        url.searchParams.set('chat', chatId);
+                    }} else {{
+                        url.pathName = '/c/' + chatId;
+                    }}
+                    
+                    window.history.pushState({{}}, null, url);
+                `);
+                </script>"""
+            )
+            if os.environ.get("ENVIRONMENT") == "development":
+                components.html(
+                    """<script>window.history.pushState({}, null, "")</script>"""
+                )
+            else:
+                url = get
+                components.html(
+                    """<script>window.history.pushState({}, null, "")</script>"""
+                )
         if chat_id and chat_id != st.session_state.chat_id:
             st.session_state.chat_id = chat_id
             st.rerun()
