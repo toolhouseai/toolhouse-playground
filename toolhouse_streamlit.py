@@ -9,7 +9,7 @@ from components import sidebar, hero, top_up
 from decrypt import decrypt
 from history import get_chat_history, upsert_chat_history
 import dotenv
-import json
+import os
 
 dotenv.load_dotenv()
 
@@ -17,10 +17,9 @@ try:
     token = st.query_params.get("token")
     config = decrypt(token)
     api_key = config.get("th_token")
-    api_key = "th-JRf0F0XORSkOsyg4jPkY4ras74lCsvB8ZKuyPewcwuw"
     st.session_state.api_key = api_key
     th = Toolhouse(access_token=api_key, provider=Provider.ANTHROPIC)
-    th.set_base_url("https://api-staging.toolhouse.ai/v1")
+    th.set_base_url(os.environ.get("TOOLHOUSE_BASE_URL", "https://api.toolhouse.ai/v1"))
 except:
     st.error(
         "You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
@@ -89,6 +88,9 @@ if "ready" not in st.session_state:
 
 if "chat_id" not in st.session_state:
     st.session_state.chat_id = None
+
+if st.query_params.get("chat"):
+    st.session_state.chat_id = st.query_params.get("chat")
 
 st.logo("logo.svg", link="https://app.toolhouse.ai")
 

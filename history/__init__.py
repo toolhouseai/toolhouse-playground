@@ -1,6 +1,7 @@
 import requests
+import os
 
-base_url = "http://0.0.0.0:8000/v1"
+base_url = os.environ.get("BASE_URL", "https://api.toolhouse.ai/v1")
 
 
 def url(path: str):

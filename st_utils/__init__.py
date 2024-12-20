@@ -1,6 +1,5 @@
 import streamlit as st
 from toolhouse.models.Stream import ToolhouseStreamStorage, stream_to_chat_completion
-from types import SimpleNamespace
 
 
 def anthropic_stream(response):

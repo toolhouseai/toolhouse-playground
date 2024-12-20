@@ -2,11 +2,13 @@ import streamlit as st
 import requests
 from tools import tool_prompts, generate_prompt_suggestions
 from history import get_all_chats
+import os
 
 tool_req = requests.get("https://api.toolhouse.ai/me/tools")
 tool_list = tool_req.json()
-# base_url = "https://toolhouseplayground.streamlit.app/"
-base_url = "http://localhost:8501/"
+base_url = os.environ.get(
+    "PLAYGROUND_BASE_URL", "https://toolhouseplayground.streamlit.app/"
+)
 
 
 @st.dialog("Share this chat")
@@ -31,7 +33,7 @@ def sidebar():
             use_container_width=True,
         )
 
-        disabled = "chat" not in st.session_state or st.session_state.chat is None
+        disabled = "chat_id" not in st.session_state or st.session_state.chat_id is None
         if right.button(
             "",
             icon=":material/ios_share:",
@@ -74,6 +76,11 @@ def sidebar():
                 st.page_link(
                     f"{base_url}?token={st.query_params.get("token")}&chat={chat.get("id")}",
                     label=chat.get("title"),
+                    icon=(
+                        ":material/radio_button_checked:"
+                        if chat.get("id") == st.session_state.chat_id
+                        else None
+                    ),
                 )
 
 
