@@ -99,7 +99,7 @@ def hero():
     tool = tool_prompts.get(tool_id)
 
     if not st.query_params.get("tool_id"):
-        with st.chat_message("user"):
+        with st.chat_message("", avatar="sparkles.svg"):
             st.markdown(
                 '<h2 style="padding:0;padding-bottom:1rem">Welcome to the Playground!</h2>',
                 unsafe_allow_html=True,

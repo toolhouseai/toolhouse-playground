@@ -58,7 +58,7 @@ try:
     th.set_base_url(os.environ.get("TOOLHOUSE_BASE_URL"))
 except Exception as e:
     st.error(
-        "You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
+        "We You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
         "Please go back to your Toolhouse and click Playground to start a new session."
     )
     st.stop()
@@ -136,11 +136,19 @@ window.parent.eval(`
 
 # Check for Toolhouse API key
 if not api_key:
-    st.markdown("# Your Toolhouse API Key is missing")
-    st.markdown("To use the Playground, you need to provide a Toolhouse API Key.")
+    st.image("logo.svg", width=200)
+    st.markdown("# You need to log into Toolhouse")
+    st.markdown(
+        "Talk to the best AI models **for free** and give superpowers to your agents with just three lines of code."
+    )
+
     st.markdown(
         "Get your API Key from the [Toolhouse dashboard](https://app.toolhouse.ai/settings/api-keys)."
     )
+    st.link_button(
+        "Sign up **for free**", type="primary", url="https://app.toolhouse.ai"
+    )
+    st.markdown("Trusted by 1000+ companies and developers like you.")
     st.stop()
 
 if "messages" not in st.session_state:
@@ -269,17 +277,18 @@ if st.session_state.prompt is not None:
     call_llm(st.session_state.prompt)
     st.session_state.prompt = None
 
-
 if "api_key" not in st.session_state or st.session_state.api_key is None:
-    st.markdown("#### Run this chat for free")
-    st.markdown(
-        "Sign up for Toolhouse and try hundreds of agentic chats like these for free."
-    )
-    st.link_button(
-        "Sign up for free",
-        url="https://app.toolhouse.ai/sign-up",
-        type="primary",
-    )
+    with st.container(border=True, key="sign-up-key"):
+        st.markdown("### Build your agents for free")
+        st.markdown(
+            "Talk to the best AI models and give superpowers to your agents with just three lines of code."
+        )
+
+        st.link_button(
+            "Sign up **for free**", type="primary", url="https://app.toolhouse.ai"
+        )
+        st.markdown("Trusted by 1000+ companies and developers like you.")
+
 
 else:
     if prompt := st.chat_input("What is up?", on_submit=hide_hero):
@@ -311,15 +320,7 @@ else:
                 `);
                 </script>"""
             )
-            if os.environ.get("ENVIRONMENT") == "development":
-                components.html(
-                    """<script>window.history.pushState({}, null, "")</script>"""
-                )
-            else:
-                url = get
-                components.html(
-                    """<script>window.history.pushState({}, null, "")</script>"""
-                )
+
         if chat_id and chat_id != st.session_state.chat_id:
             st.session_state.chat_id = chat_id
             st.rerun()
