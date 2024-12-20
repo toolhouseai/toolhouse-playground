@@ -174,3 +174,20 @@ def hero():
                     on_click=hide_hero_and_call,
                     args=[tool.get("prompt")],
                 )
+
+
+def signup_hero():
+    st.image("logo.svg", width=200)
+    st.markdown("# You need to log into Toolhouse")
+    st.markdown(
+        "Talk to the best AI models **for free** and give superpowers to your agents with just three lines of code."
+    )
+
+    st.markdown(
+        "Get your API Key from the [Toolhouse dashboard](https://app.toolhouse.ai/settings/api-keys)."
+    )
+    st.link_button(
+        "Sign up **for free**", type="primary", url="https://app.toolhouse.ai"
+    )
+    st.markdown("Trusted by 1000+ companies and developers like you.")
+    st.stop()

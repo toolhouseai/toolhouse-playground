@@ -12,7 +12,7 @@ from http_exceptions.client_exceptions import PaymentRequiredException
 from llms import llms, llm_call
 from http_exceptions.client_exceptions import NotFoundException
 from st_utils import print_messages, append_and_print
-from components import sidebar, hero, top_up
+from components import sidebar, hero, top_up, signup_hero
 from decrypt import decrypt
 from api.history import get_chat_history, upsert_chat_history
 from api.api_key import get_api_key
@@ -57,11 +57,7 @@ try:
     th = Toolhouse(access_token=st.session_state.api_key, provider=Provider.ANTHROPIC)
     th.set_base_url(os.environ.get("TOOLHOUSE_BASE_URL"))
 except Exception as e:
-    st.error(
-        "We You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
-        "Please go back to your Toolhouse and click Playground to start a new session."
-    )
-    st.stop()
+    signup_hero()
 
 
 st.markdown(
@@ -136,20 +132,7 @@ window.parent.eval(`
 
 # Check for Toolhouse API key
 if not api_key:
-    st.image("logo.svg", width=200)
-    st.markdown("# You need to log into Toolhouse")
-    st.markdown(
-        "Talk to the best AI models **for free** and give superpowers to your agents with just three lines of code."
-    )
-
-    st.markdown(
-        "Get your API Key from the [Toolhouse dashboard](https://app.toolhouse.ai/settings/api-keys)."
-    )
-    st.link_button(
-        "Sign up **for free**", type="primary", url="https://app.toolhouse.ai"
-    )
-    st.markdown("Trusted by 1000+ companies and developers like you.")
-    st.stop()
+    signup_hero()
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
