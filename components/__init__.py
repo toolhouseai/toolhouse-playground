@@ -1,9 +1,8 @@
 import streamlit as st
-import extra_streamlit_components as stx
 import requests
+import pyperclip
 from tools import tool_prompts, generate_prompt_suggestions
 from api.history import get_all_chats
-from components.redirect import auto_redirect
 
 import os
 
@@ -14,10 +13,33 @@ base_url = os.environ.get(
 )
 
 
+def build_url(chat_id):
+    return (
+        f"{base_url}?chat={chat_id}"
+        if os.environ.get("ENVIRONMENT") == "development"
+        else f"{base_url}/c/{chat_id}"
+    )
+
+
 @st.dialog("Share this chat")
 def share_dialog():
-    share_url = f"{base_url}/{st.query_params.get("chat")}"
-    st.text_input("Here's the link to this chat.", value=share_url)
+    st.markdown("You can share this chat with others by sending them this link.")
+    st.markdown(
+        "**Important:** People can see the entire chat history, but they won't be able to use your execution credits."
+    )
+    url = build_url(st.session_state.chat_id)
+    left, right = st.columns([5, 1], vertical_alignment="center")
+    with left:
+        st.html(f'<pre class="th-share-url">{url}</pre>')
+    with right:
+        if st.button(
+            "",
+            type="tertiary",
+            icon=":material/content_copy:",
+            use_container_width=True,
+        ):
+            pyperclip.copy(url)
+            st.toast("Link copied to clipboard")
 
 
 def get_tool(tool_id: str):
@@ -26,7 +48,7 @@ def get_tool(tool_id: str):
 
 def sidebar(token):
     with st.sidebar:
-        st.title("💬 Playground")
+        st.title(":material/chat: Playground")
         left, right = st.columns(2)
         left.link_button(
             "",
@@ -50,40 +72,15 @@ def sidebar(token):
         ✨ [Join our Discord Community](https://discord.toolhouse.ai)
         """
         )
-
-        if not st.session_state.available_tools:
-            st.subheader("No tools installed")
-            st.caption(
-                "Go to the [Tool Store](https://app.toolhouse.ai/store) to install your tools."
-            )
-        else:
-            with st.expander("Installed tools"):
-                st.caption("Click on a tool to see its details.")
-                for tool in st.session_state.available_tools:
-                    tool_id = tool.get("name")
-                    if t := get_tool(tool_id):
-                        tool_name = t.get("title")
-                    else:
-                        tool_name = tool_id
-
-                    st.page_link(
-                        f"https://app.toolhouse.ai/store/{tool_id}", label=tool_name
-                    )
-
-                st.caption(
-                    "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store)."
-                )
-
         if chat_list := get_all_chats(token):
+            st.markdown("### Your chats")
             for chat in chat_list:
-                st.page_link(
-                    f"{base_url}?chat={chat.get("id")}",
-                    label=chat.get("title"),
-                    icon=(
-                        ":material/radio_button_checked:"
-                        if chat.get("id") == st.session_state.chat_id
-                        else None
-                    ),
+                active = (
+                    "th-active" if chat.get("id") == st.session_state.chat_id else ""
+                )
+                url = build_url(chat.get("id"))
+                st.html(
+                    f'<a href="{url}" class="th-page-link {active}" target="_self">{chat.get("title")}'
                 )
 
 

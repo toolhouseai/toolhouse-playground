@@ -4,6 +4,7 @@ import dotenv
 dotenv.load_dotenv()
 
 import streamlit as st
+import streamlit.components.v1 as components
 from toolhouse import Toolhouse, Provider
 from datetime import datetime, timedelta
 import extra_streamlit_components as stx
@@ -67,9 +68,71 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<style>body, div, h1, h2, h3, h4, h4, h5, button,input,optgroup,select,textarea {font-family: "Rethink Sans" !important}</style>',
+    """<style>
+    body, div, h1, h2, h3, h4, h4, h5, button,input,optgroup,select,textarea {font-family: "Rethink Sans" !important}
+    .th-page-link, 
+    .th-page-link:visited,
+    .th-page-link:hover {
+        color: rgb(49, 51, 63); 
+        text-decoration: none;
+        width: 288px;
+        display: flex;
+        flex-direction: row;
+        -webkit-box-align: center;
+        align-items: center;
+        -webkit-box-pack: start;
+        justify-content: flex-start;
+        gap: 0.5rem;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        margin-top: -0.375rem; 
+        margin-bottom: -0.375rem; 
+        line-height: 2;
+    }
+    
+    .th-page-link.th-active,
+    .th-page-link:active,
+    .th-page-link:hover {
+        background-color: rgba(151, 166, 195, 0.15);
+    }
+    
+    .th-share-url {
+        background: rgb(248, 249, 251);
+        border-radius: 0.5rem;
+        color: rgb(49, 51, 63);
+        font-size: 14px;
+        font-family: "Source Code Pro", monospace;
+        display: block;
+        margin: 0px;
+        overflow: auto;
+        padding: 1rem 2.3rem 1rem 1rem;
+    }
+    
+    div.stToastContainer {z-index: 2000000;}
+    </style>""",
     unsafe_allow_html=True,
 )
+
+components.html(
+    """
+<script>
+window.parent.eval(`
+    document.addEventListener('click', function(event) {
+        let target = event.target;
+        while (target && target.tagName !== 'A') {
+            console.log(target)
+            target = target.parentNode;
+        }
+        if (target && target.tagName === 'A') {
+            event.preventDefault();
+            window.location.href = target.href;
+        }
+    });
+`);
+</script>""",
+    height=0,
+)
+
 
 # Check for Toolhouse API key
 if not api_key:

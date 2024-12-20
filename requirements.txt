@@ -139,3 +139,4 @@ watchdog==4.0.1
 wrapt==1.16.0
 xattr==1.1.0
 yarl==1.9.4
+pyperclip
