@@ -1,1 +1,1 @@
-web: streamlit run toolhouse_streamlit.py
+web: streamlit run toolhouse_streamlit.py --server.port $PORT
