@@ -25,6 +25,7 @@ distro==1.9.0
 dulwich==0.21.7
 eval_type_backport==0.2.0
 exceptiongroup==1.2.2
+extra-streamlit-components==0.1.71
 fastjsonschema==2.21.1
 filelock==3.15.4
 filetype==1.2.0

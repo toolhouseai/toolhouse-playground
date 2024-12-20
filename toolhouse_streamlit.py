@@ -1,37 +1,66 @@
+import traceback
+import dotenv
+
+dotenv.load_dotenv()
+
 import streamlit as st
 from toolhouse import Toolhouse, Provider
+from datetime import datetime, timedelta
+import extra_streamlit_components as stx
 from http_exceptions.client_exceptions import PaymentRequiredException
 from llms import llms, llm_call
 from http_exceptions.client_exceptions import NotFoundException
 from st_utils import print_messages, append_and_print
-from tools import tool_prompts
 from components import sidebar, hero, top_up
 from decrypt import decrypt
-from history import get_chat_history, upsert_chat_history
-import dotenv
+from api.history import get_chat_history, upsert_chat_history
+from api.api_key import get_api_key
 import os
 
-dotenv.load_dotenv()
+st.set_page_config(
+    page_title="Toolhouse Playground",
+    page_icon="https://app.toolhouse.ai/icons/favicon.ico",
+)
+cookie_manager = stx.CookieManager()
+
+if "api_key" not in st.session_state:
+    st.session_state.api_key = None
+
+if "jwt" not in st.session_state:
+    st.session_state.jwt = None
 
 try:
-    token = st.query_params.get("token")
-    config = decrypt(token)
-    api_key = config.get("th_token")
-    st.session_state.api_key = api_key
-    th = Toolhouse(access_token=api_key, provider=Provider.ANTHROPIC)
+    if st.query_params.get("token"):
+        token = st.query_params.get("token")
+        jwt = decrypt(token)
+        api_key = get_api_key(jwt)
+
+        if api_key:
+            session_length = datetime.now() + timedelta(days=364)
+            cookie_manager.set("token", jwt, expires_at=session_length)
+            st.session_state.api_key = api_key
+            st.session_state.jwt = jwt
+    elif cookie_manager.get("token"):
+        jwt = cookie_manager.get("token")
+        api_key = get_api_key(jwt)
+
+        if api_key:
+            session_length = datetime.now() + timedelta(days=364)
+            cookie_manager.set("token", jwt, expires_at=session_length)
+            st.session_state.api_key = api_key
+            st.session_state.jwt = jwt
+    else:
+        raise ValueError()
+
+    th = Toolhouse(access_token=st.session_state.api_key, provider=Provider.ANTHROPIC)
     th.set_base_url(os.environ.get("TOOLHOUSE_BASE_URL", "https://api.toolhouse.ai/v1"))
-except:
+except Exception as e:
     st.error(
         "You need a valid Toolhouse API Key in order to access the Toolhouse Playground."
         "Please go back to your Toolhouse and click Playground to start a new session."
     )
     st.stop()
 
-
-st.set_page_config(
-    page_title="Toolhouse Playground",
-    page_icon="https://app.toolhouse.ai/icons/favicon.ico",
-)
 
 st.markdown(
     "<style>@import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap');</style>",
@@ -41,8 +70,6 @@ st.markdown(
     '<style>body, div, h1, h2, h3, h4, h4, h5, button,input,optgroup,select,textarea {font-family: "Rethink Sans" !important}</style>',
     unsafe_allow_html=True,
 )
-tool_id = config.get("tool_id")
-tool = tool_prompts.get(tool_id)
 
 # Check for Toolhouse API key
 if not api_key:
@@ -101,10 +128,7 @@ llm = llms.get(llm_choice)
 st.session_state.provider = llm.get("provider")
 model = llm.get("model")
 
-timezone = config.get("tz") or 0
-
 th.set_metadata("id", api_key)
-th.set_metadata("timezone", timezone)
 
 
 def hide_hero():
@@ -147,7 +171,7 @@ def call_llm(prompt):
         top_up()
 
 
-sidebar()
+sidebar(cookie_manager.get("token"))
 hero()
 
 
@@ -155,7 +179,7 @@ if (chat_id := st.query_params.get("chat")) and st.session_state.ready == False:
     st.session_state.chat_id = chat_id
     st.session_state.ready = True
     try:
-        if not (messages := get_chat_history(chat_id, api_key)):
+        if not (messages := get_chat_history(chat_id, cookie_manager.get("token"))):
             raise ValueError
 
         st.session_state.messages = messages
@@ -182,15 +206,28 @@ if st.session_state.prompt is not None:
     call_llm(st.session_state.prompt)
     st.session_state.prompt = None
 
-if prompt := st.chat_input("What is up?", on_submit=hide_hero):
-    st.session_state.prompt = prompt
-    call_llm(prompt)
-    st.session_state.prompt = None
-
-    chat_id = upsert_chat_history(
-        st.session_state.chat_id, st.session_state.messages, api_key
+if "api_key" not in st.session_state or st.session_state.api_key is None:
+    st.markdown("#### Run this chat for free")
+    st.markdown(
+        "Sign up for Toolhouse and try hundreds of agentic chats like these for free."
+    )
+    st.link_button(
+        "Sign up for free",
+        url="https://app.toolhouse.ai/sign-up",
     )
 
-    if chat_id and chat_id != st.session_state.chat_id:
-        st.session_state.chat_id = chat_id
-        st.rerun()
+else:
+    if prompt := st.chat_input("What is up?", on_submit=hide_hero):
+        st.session_state.prompt = prompt
+        call_llm(prompt)
+        st.session_state.prompt = None
+
+        chat_id = upsert_chat_history(
+            st.session_state.chat_id,
+            st.session_state.messages,
+            st.session_state.jwt,
+        )
+
+        if chat_id and chat_id != st.session_state.chat_id:
+            st.session_state.chat_id = chat_id
+            st.rerun()

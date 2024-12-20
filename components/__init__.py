@@ -1,7 +1,10 @@
 import streamlit as st
+import extra_streamlit_components as stx
 import requests
 from tools import tool_prompts, generate_prompt_suggestions
-from history import get_all_chats
+from api.history import get_all_chats
+from components.redirect import auto_redirect
+
 import os
 
 tool_req = requests.get("https://api.toolhouse.ai/me/tools")
@@ -13,7 +16,7 @@ base_url = os.environ.get(
 
 @st.dialog("Share this chat")
 def share_dialog():
-    share_url = f"{base_url}?token={st.query_params.get("token")}&chat={st.query_params.get("chat")}"
+    share_url = f"{base_url}/{st.query_params.get("chat")}"
     st.text_input("Here's the link to this chat.", value=share_url)
 
 
@@ -21,13 +24,13 @@ def get_tool(tool_id: str):
     return next((obj for obj in tool_list if obj.get("id") == tool_id), None)
 
 
-def sidebar():
+def sidebar(token):
     with st.sidebar:
         st.title("💬 Playground")
         left, right = st.columns(2)
         left.link_button(
             "",
-            url=f"/?token={st.query_params.get("token")}",
+            url=f"/",
             icon=":material/library_add:",
             help="New chat",
             use_container_width=True,
@@ -71,10 +74,10 @@ def sidebar():
                     "\n\nManage your tools in the [Tool Store](https://app.toolhouse.ai/store)."
                 )
 
-        if chat_list := get_all_chats(st.session_state.api_key):
+        if chat_list := get_all_chats(token):
             for chat in chat_list:
                 st.page_link(
-                    f"{base_url}?token={st.query_params.get("token")}&chat={chat.get("id")}",
+                    f"{base_url}?chat={chat.get("id")}",
                     label=chat.get("title"),
                     icon=(
                         ":material/radio_button_checked:"
@@ -121,7 +124,7 @@ def hero():
             )
 
             st.button(
-                "Try some suggestions",
+                "I'm feeling lucky",
                 on_click=get_suggestions,
                 icon=":material/ifl:",
                 disabled=(
